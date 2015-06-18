@@ -29,43 +29,38 @@ import java.util.Collection;
 public class presenceApp extends Application implements BootstrapNotifier {
 
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.
-    public static String beaconUUID= "12345678-1234-1234-1234-123456789abc";
-    public static String beaconMajor="42";
-    public static String beaconMinor="42";
+    public static float currentDistance;
+    public static String beaconUUID;
+    public static String beaconMajor;
+    public static String beaconMinor;
+    public static String beaconName;
     public static String username;
     public static String password;
     public static final String SETTING_FILE="presenceSettingFile";
 
     //Default values for first loading
-    final private static float detectionDistanceDefault = 1;
-    final private static String beaconUUIDDefault= "12345678-1234-1234-1234-123456789abc";
-    final private static String beaconMajorDefault="42";
-    final private static String beaconMinorDefault="42";
-    final private static String usernameDefault="";
-    final private static String passwordDefault="";
+    final public static float detectionDistanceDefault = 1;
+    final public static String beaconUUIDDefault= "12345678-1234-1234-1234-123456789abc";
+    final public static String beaconMajorDefault="42";
+    final public static String beaconMinorDefault="42";
+    final public static String usernameDefault="";
+    final public static String passwordDefault="";
+    final public static String beaconNameDefault=null;
 
     private static final String TAG = ".presenceApp";
     public static RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
-    public Region region;
+    static public Region region;
 
     private boolean isScreenOn;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        readPersistentStorage();
         Log.d(TAG, "App started up");
         beaconManager= BeaconManager.getInstanceForApplication(this);
-
-        //load settings
-        SharedPreferences settings = getSharedPreferences(SETTING_FILE, 0);
-        detectionDistance=settings.getFloat("detectionDistanceKey",detectionDistanceDefault);
-        beaconUUID= settings.getString("beaconUUIDKey", beaconUUIDDefault);
-        beaconMajor= settings.getString("beaconMajorKey", beaconMajorDefault);
-        beaconMinor= settings.getString("beaconMinorKey", beaconMinorDefault);
-        username= settings.getString("usernameKey", usernameDefault);
-        password= settings.getString("passwordKey", passwordDefault);
 
         // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
         region = new Region("backgroundRegion", Identifier.parse(beaconUUID), Identifier.parse(beaconMajor), Identifier.parse(beaconMinor));
@@ -82,25 +77,28 @@ public class presenceApp extends Application implements BootstrapNotifier {
         Log.d(TAG, "Got a didEnterRegion call");
         final Intent intent = new Intent(this, popupActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        beaconManager.setRangeNotifier(new RangeNotifier() {
-            @Override
-            public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
-                if (beacons.size() > 0) {
-                    Beacon firstBeacon = beacons.iterator().next();
-                    Log.i(TAG, "The first beacon" + firstBeacon.toString() + " is about " + beacons.iterator().next().getDistance() + " meters away.");
-                    if (beacons.iterator().next().getDistance() <= detectionDistance && !startingActivity.isSettingsActive) {
-                        Log.i(TAG, "I am in range !");
-                        triggerNotification("Hey! Are you going in or out?");
-                        wakeScreen();
-                        startActivity(intent);
-                        try {
-                            beaconManager.stopRangingBeaconsInRegion(region);
-                        } catch (RemoteException e) {
-                        }
-                    } else Log.i(TAG, "I am too far !");
+        if(beaconName!=null) {
+            beaconManager.setRangeNotifier(new RangeNotifier() {
+                @Override
+                public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
+                    if (beacons.size() > 0) {
+                        Beacon firstBeacon = beacons.iterator().next();
+                        currentDistance = (float) beacons.iterator().next().getDistance();
+                        Log.i(TAG, "The first beacon" + firstBeacon.toString() + " is about " + currentDistance + " meters away.");
+                        if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
+                            Log.i(TAG, "I am in range !");
+                            triggerNotification("Hey! Are you going in or out?");
+                            wakeScreen();
+                            startActivity(intent);
+                            try {
+                                beaconManager.stopRangingBeaconsInRegion(region);
+                            } catch (RemoteException e) {
+                            }
+                        } else Log.i(TAG, "I am too far !");
+                    }
                 }
-            }
-        });
+            });
+        }
         try {
             beaconManager.startRangingBeaconsInRegion(region);
         } catch (RemoteException e) {}
@@ -140,6 +138,17 @@ public class presenceApp extends Application implements BootstrapNotifier {
         // Vibrate for 400 milliseconds
         Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         v.vibrate(400);
+    }
+
+    private void readPersistentStorage() {
+        SharedPreferences settings = getSharedPreferences(SETTING_FILE, 0);
+        detectionDistance=settings.getFloat("detectionDistanceKey",detectionDistanceDefault);
+        beaconUUID= settings.getString("beaconUUIDKey", beaconUUIDDefault);
+        beaconMajor= settings.getString("beaconMajorKey", beaconMajorDefault);
+        beaconMinor= settings.getString("beaconMinorKey", beaconMinorDefault);
+        beaconName=settings.getString("beaconNameKey",beaconNameDefault);
+        username= settings.getString("usernameKey", usernameDefault);
+        password= settings.getString("passwordKey", passwordDefault);
     }
 
     @Override

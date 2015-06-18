@@ -7,11 +7,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.altbeacon.beacon.BeaconManager;
 
@@ -21,58 +23,19 @@ import org.altbeacon.beacon.BeaconManager;
 public class startingActivity extends Activity {
     protected static final String TAG = "startingActivity";
     public static boolean isSettingsActive;
+    final Handler handler = new Handler();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_starting);
         isSettingsActive = true;
-
         //make sure the user's phone is BLE compatible and has BLE enabled. Offers to turn it on otherwise.
         verifyBluetooth();
 
-        //start buttons
-        final Button stopButton = (Button) findViewById(R.id.stopButton);
-        stopButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                onStopAppClick();
-            }
-        });
-        final Button scanButton = (Button) findViewById(R.id.scanButton);
-        scanButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                onScanClick();
-            }
-        });
-        final Button loginButton = (Button) findViewById(R.id.loginButton);
-        loginButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                onLoginClick();
-            }
-        });
-
         //start the distance detection seekbar
-        final TextView distanceText = (TextView) findViewById(R.id.distance);
-        distanceText.setText( String.valueOf(presenceApp.detectionDistance));
-        SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
-        distanceBar.setProgress((int)presenceApp.detectionDistance*20);
-        distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            int progress = 0;
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                presenceApp.detectionDistance= (float) ( progress / 20.0);
-                distanceText.setText( String.valueOf(presenceApp.detectionDistance));
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
-        });
-
+        initUI();
 
         Log.i(TAG, "Application just launched");
     }
@@ -80,23 +43,25 @@ public class startingActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         isSettingsActive=false;
+        writePersistentSettings();
 
-        //store the settings in the Shared Preference file
-        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.clear();
-        editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
-        editor.putString("beaconUUIDKey", presenceApp.beaconUUID);
-        editor.putString("beaconMajorKey",presenceApp.beaconMajor);
-        editor.putString("beaconMinorKey",presenceApp.beaconMinor);
-        editor.putString("usernameKey",presenceApp.username);
-        editor.putString("passwordKey",presenceApp.password);
-        // Commit the edits!
-        editor.commit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        verifyBluetooth();
+        initUI();
+        isSettingsActive=true;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        writePersistentSettings();
     }
 
     private void verifyBluetooth() {
-
         try {
             if (!BeaconManager.getInstanceForApplication(this).checkAvailability()) {
                 startActivityForResult( new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE), 0);
@@ -118,15 +83,101 @@ public class startingActivity extends Activity {
             });
             builder.show();
         }
+    }
 
+    private void writePersistentSettings() {
+        //store the settings in the Shared Preference file
+        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.clear();
+        editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
+        editor.putString("beaconUUIDKey", presenceApp.beaconUUID);
+        if(presenceApp.beaconName!= null) editor.putString("beaconNameKey",presenceApp.beaconName);
+        editor.putString("beaconMajorKey",presenceApp.beaconMajor);
+        editor.putString("beaconMinorKey",presenceApp.beaconMinor);
+        editor.putString("usernameKey",presenceApp.username);
+        editor.putString("passwordKey",presenceApp.password);
+        // Commit the edits!
+        editor.commit();
+    }
+
+    public void updateCurrentDistance(){
+        if (presenceApp.beaconName!=null) {
+            final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
+            currentDistanceText.setText("current distance from " + presenceApp.beaconName + ": " + String.valueOf(presenceApp.currentDistance) + "m");
+        }
+    }
+
+    private void initUI(){
+        //start buttons
+        final Button stopButton = (Button) findViewById(R.id.stopButton);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                onStopAppClick();
+            }
+        });
+        final Button scanButton = (Button) findViewById(R.id.scanButton);
+        scanButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                onScanClick();
+            }
+        });
+        final Button loginButton = (Button) findViewById(R.id.loginButton);
+        loginButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                onLoginClick();
+            }
+        });
+        final Button clearSettingsButton= (Button) findViewById(R.id.clearSettingsButton);
+        clearSettingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onClearSettingsClick();
+            }
+        });
+        final Button readyButton=(Button) findViewById(R.id.readyButton);
+        readyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onReadyClick();
+            }
+        });
+        //start seekBar and distance related texts
+        final TextView detectionDistanceText = (TextView) findViewById(R.id.detectionDistance);
+        detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                updateCurrentDistance();
+                if(isSettingsActive)handler.postDelayed(this, 3000);
+            }
+        }, 1000);
+        SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
+        distanceBar.setProgress((int)presenceApp.detectionDistance*10);
+        distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            int progress = 0;
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                presenceApp.detectionDistance= (float) ( progress / 10.0);
+                detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
     }
 
     private void onStopAppClick() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("closing Presence");
         builder.setMessage("This will stop all background services and monitoring, until you restart the application.");
-        builder.setPositiveButton(android.R.string.ok,new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id){
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
                 killApp();
             }
         });
@@ -146,9 +197,43 @@ public class startingActivity extends Activity {
     }
 
     private void onScanClick(){
-        final Intent intent = new Intent(this, beaconScanActivity.class);
+        final Intent intent = new Intent(this, myScanActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
+    }
+
+    private void onClearSettingsClick(){
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("removing settings");
+        builder.setMessage("Your stored settings will be removed. You will have to reconfigure it !");
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+                SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+                settings.edit().clear().commit();
+                presenceApp.beaconName=presenceApp.beaconNameDefault;
+                presenceApp.beaconMajor=presenceApp.beaconMajorDefault;
+                presenceApp.beaconMinor=presenceApp.beaconMinorDefault;
+                presenceApp.username=presenceApp.usernameDefault;
+                presenceApp.password=presenceApp.passwordDefault;
+                presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
+                presenceApp.currentDistance=0;
+                Intent intent= getIntent();
+                finish();
+                startActivity(intent);
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int id) {
+            }
+        });
+        builder.show();
+    }
+
+    private void onReadyClick(){
+        if(presenceApp.beaconName==null)
+            Toast.makeText(getApplicationContext(), "You need to select your DoBeacon!", Toast.LENGTH_LONG).show();
+        else
+            finish();
     }
 
     private void onLoginClick() {
