@@ -21,6 +21,7 @@ import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 import org.altbeacon.beacon.startup.BootstrapNotifier;
 import org.altbeacon.beacon.startup.RegionBootstrap;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -40,11 +41,11 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     //Default values for first loading
     final public static float detectionDistanceDefault = 1;
-    final public static String beaconUUIDDefault= "12345678-1234-1234-1234-123456789abc";
-    final public static String beaconMajorDefault="42";
-    final public static String beaconMinorDefault="42";
-    final public static String usernameDefault="";
-    final public static String passwordDefault="";
+    final public static String beaconUUIDDefault= null;
+    final public static String beaconMajorDefault=null;
+    final public static String beaconMinorDefault=null;
+    final public static String usernameDefault=null;
+    final public static String passwordDefault=null;
     final public static String beaconNameDefault=null;
 
     private static final String TAG = ".presenceApp";
@@ -52,8 +53,10 @@ public class presenceApp extends Application implements BootstrapNotifier {
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
     static public Region region;
+    static public Region noFilterRegion= new Region("noFilter", null, null, null);
 
     private boolean isScreenOn;
+    public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>();;
 
     @Override
     public void onCreate() {
@@ -63,7 +66,10 @@ public class presenceApp extends Application implements BootstrapNotifier {
         beaconManager= BeaconManager.getInstanceForApplication(this);
 
         // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
-        region = new Region("backgroundRegion", Identifier.parse(beaconUUID), Identifier.parse(beaconMajor), Identifier.parse(beaconMinor));
+        if(beaconUUID!=null)
+            region = new Region("backgroundRegion", Identifier.parse(beaconUUID), Identifier.parse(beaconMajor), Identifier.parse(beaconMinor));
+        else
+            region= noFilterRegion;
         backgroundPowerSaver = new BackgroundPowerSaver(this); //enough to save up to 60% of battery consumption
         regionBootstrap = new RegionBootstrap(this, region);
 
@@ -77,7 +83,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
         Log.d(TAG, "Got a didEnterRegion call");
         final Intent intent = new Intent(this, popupActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        if(beaconName!=null) {
             beaconManager.setRangeNotifier(new RangeNotifier() {
                 @Override
                 public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
@@ -85,20 +90,24 @@ public class presenceApp extends Application implements BootstrapNotifier {
                         Beacon firstBeacon = beacons.iterator().next();
                         currentDistance = (float) beacons.iterator().next().getDistance();
                         Log.i(TAG, "The first beacon" + firstBeacon.toString() + " is about " + currentDistance + " meters away.");
-                        if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
-                            Log.i(TAG, "I am in range !");
-                            triggerNotification("Hey! Are you going in or out?");
-                            wakeScreen();
-                            startActivity(intent);
-                            try {
-                                beaconManager.stopRangingBeaconsInRegion(region);
-                            } catch (RemoteException e) {
-                            }
-                        } else Log.i(TAG, "I am too far !");
+                        Log.i(TAG, "beacons.size= " + String.valueOf(beacons.size()));
+                        if (myScanActivity.isScanActivityActive)
+                            doBeaconArray = new ArrayList<Beacon>(beacons);
+                        else {
+                            if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
+                                Log.i(TAG, "I am in range !");
+                                triggerNotification("Hey! Are you going in or out?");
+                                wakeScreen();
+                                startActivity(intent);
+                                try {
+                                    beaconManager.stopRangingBeaconsInRegion(region);
+                                } catch (RemoteException e) {
+                                }
+                            } else Log.i(TAG, "I am too far !");
+                        }
                     }
                 }
             });
-        }
         try {
             beaconManager.startRangingBeaconsInRegion(region);
         } catch (RemoteException e) {}

@@ -8,9 +8,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,7 +26,7 @@ public class startingActivity extends Activity {
     protected static final String TAG = "startingActivity";
     public static boolean isSettingsActive;
     final Handler handler = new Handler();
-
+    private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +60,7 @@ public class startingActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        isSettingsActive=false;
         writePersistentSettings();
     }
 
@@ -102,10 +105,11 @@ public class startingActivity extends Activity {
     }
 
     public void updateCurrentDistance(){
-        if (presenceApp.beaconName!=null) {
-            final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
+        final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
+        if (presenceApp.beaconName!=null)
             currentDistanceText.setText("current distance from " + presenceApp.beaconName + ": " + String.valueOf(presenceApp.currentDistance) + "m");
-        }
+        else
+            currentDistanceText.setText("please select your DoBeacon.");
     }
 
     private void initUI(){
@@ -170,6 +174,13 @@ public class startingActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+        //login stuff
+        if(presenceApp.username!=null && presenceApp.password!=null ) {
+            EditText username = (EditText) findViewById(R.id.username);
+            EditText password = (EditText) findViewById(R.id.password);
+            username.setText(presenceApp.username);
+            password.setText(presenceApp.password);
+        }
     }
 
     private void onStopAppClick() {
@@ -196,30 +207,50 @@ public class startingActivity extends Activity {
         System.exit(0);
     }
 
+    private void clearSettings(){
+        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        settings.edit().clear().commit();
+        presenceApp.beaconName=presenceApp.beaconNameDefault;
+        presenceApp.beaconUUID=presenceApp.beaconUUIDDefault;
+        presenceApp.beaconMajor=presenceApp.beaconMajorDefault;
+        presenceApp.beaconMinor=presenceApp.beaconMinorDefault;
+        presenceApp.username=presenceApp.usernameDefault;
+        presenceApp.password=presenceApp.passwordDefault;
+        presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
+        presenceApp.currentDistance=0;
+        killApp();
+    }
+
     private void onScanClick(){
-        final Intent intent = new Intent(this, myScanActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        if(presenceApp.beaconName==null) {
+            final Intent intent = new Intent(this, myScanActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        }
+        else {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("doBeacon already set");
+            builder.setMessage("You have already selected a DoBeacon.delete all settings? (you will have a to restart the app)");
+            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                   clearSettings();
+                }
+            });
+            builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                }
+            });
+            builder.show();
+        }
     }
 
     private void onClearSettingsClick(){
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("removing settings");
-        builder.setMessage("Your stored settings will be removed. You will have to reconfigure it !");
+        builder.setMessage("Your stored settings will be removed. You will have to restart the app and reconfigure it !");
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
-                SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
-                settings.edit().clear().commit();
-                presenceApp.beaconName=presenceApp.beaconNameDefault;
-                presenceApp.beaconMajor=presenceApp.beaconMajorDefault;
-                presenceApp.beaconMinor=presenceApp.beaconMinorDefault;
-                presenceApp.username=presenceApp.usernameDefault;
-                presenceApp.password=presenceApp.passwordDefault;
-                presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
-                presenceApp.currentDistance=0;
-                Intent intent= getIntent();
-                finish();
-                startActivity(intent);
+                clearSettings();
             }
         });
         builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -232,11 +263,24 @@ public class startingActivity extends Activity {
     private void onReadyClick(){
         if(presenceApp.beaconName==null)
             Toast.makeText(getApplicationContext(), "You need to select your DoBeacon!", Toast.LENGTH_LONG).show();
-        else
+        else {
             finish();
+            try {
+                beaconManager.startRangingBeaconsInRegion(presenceApp.region);
+            } catch (RemoteException e) {
+            }
+        }
     }
 
     private void onLoginClick() {
-
+        EditText username=(EditText) findViewById(R.id.username);
+        EditText password=(EditText) findViewById(R.id.password);
+        if(username.getText().toString().length()!=0) {
+            presenceApp.username = username.getText().toString();
+            presenceApp.password = password.getText().toString();
+            Log.i(TAG, "set username to " + presenceApp.username);
+            Toast.makeText(getApplicationContext(), "Welcome " + presenceApp.username + " !", Toast.LENGTH_LONG).show();
+        }
+        else Toast.makeText(getApplicationContext(), "Please enter your credentials.", Toast.LENGTH_LONG).show();
     }
 }

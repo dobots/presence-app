@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.NotificationManager;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.view.View;
 import android.widget.Button;
 
@@ -74,7 +75,11 @@ public class popupActivity extends Activity implements BeaconConsumer {
     public void onSettingsClick(){
         final Intent intent = new Intent(this, startingActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            beaconManager.startRangingBeaconsInRegion(presenceApp.region);
+        } catch (RemoteException e) {}
         startActivity(intent);
+        finish();
     }
 
 }
