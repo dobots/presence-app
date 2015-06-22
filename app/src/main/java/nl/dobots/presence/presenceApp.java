@@ -7,9 +7,12 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.Vibrator;
+import android.provider.Settings;
 import android.util.Log;
 
 import org.altbeacon.beacon.Beacon;
@@ -35,6 +38,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
     public static String beaconMajor;
     public static String beaconMinor;
     public static String beaconName;
+    public static ArrayList<Beacon> targetDoBeaconArray;
     public static String username;
     public static String password;
     public static final String SETTING_FILE="presenceSettingFile";
@@ -119,11 +123,16 @@ public class presenceApp extends Application implements BootstrapNotifier {
         CharSequence message = s;
         NotificationManager notificationManager;
         notificationManager = (NotificationManager) getSystemService(this.NOTIFICATION_SERVICE);
+        //Play a notification sound
+        Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
         Notification notification = new Notification.Builder(this)
                 .setContentTitle("Presence")
                 .setContentText(message)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(contentIntent)
+                .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
+                .setLights(0x0000ff00,500,1000)
                 .build();
         notification.flags |= Notification.DEFAULT_LIGHTS | Notification.FLAG_AUTO_CANCEL;
         notificationManager.notify(1010, notification);
