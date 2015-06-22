@@ -18,6 +18,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.altbeacon.beacon.BeaconManager;
+import org.altbeacon.beacon.Identifier;
 
 /**
  * Created by christian on 15/06/15.
@@ -94,10 +95,14 @@ public class startingActivity extends Activity {
         SharedPreferences.Editor editor = settings.edit();
         editor.clear();
         editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
-        editor.putString("beaconUUIDKey", presenceApp.beaconUUID);
-        if(presenceApp.beaconName!= null) editor.putString("beaconNameKey",presenceApp.beaconName);
-        editor.putString("beaconMajorKey",presenceApp.beaconMajor);
-        editor.putString("beaconMinorKey",presenceApp.beaconMinor);
+        editor.putInt("doBeaconListSize", presenceApp.beaconUUIDArray.size());
+        for (int i=0;i<presenceApp.beaconUUIDArray.size();i++)
+        {
+            editor.putString("beaconUUIDKey" + String.valueOf(i), presenceApp.beaconUUIDArray.get(i).toString());
+            editor.putString("beaconMajorKey" + String.valueOf(i), presenceApp.beaconMajorArray.get(i).toString());
+            editor.putString("beaconMinorKey" + String.valueOf(i), presenceApp.beaconMinorArray.get(i).toString());
+            editor.putString("beaconNameKey" + String.valueOf(i), presenceApp.beaconNameArray.get(i));
+        }
         editor.putString("usernameKey",presenceApp.username);
         editor.putString("passwordKey",presenceApp.password);
         // Commit the edits!
@@ -106,10 +111,8 @@ public class startingActivity extends Activity {
 
     public void updateCurrentDistance(){
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
-        if (presenceApp.beaconName!=null)
-            currentDistanceText.setText("current distance from " + presenceApp.beaconName + ": " + String.valueOf(presenceApp.currentDistance) + "m");
-        else
-            currentDistanceText.setText("please select your DoBeacon.");
+        if (!presenceApp.beaconNameArray.isEmpty() && presenceApp.beaconNameArray.contains(presenceApp.closestDoBeacon))
+            currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon + ": " + String.valueOf(presenceApp.currentDistance) + "m");
     }
 
     private void initUI(){
@@ -153,16 +156,16 @@ public class startingActivity extends Activity {
             @Override
             public void run() {
                 updateCurrentDistance();
-                if(isSettingsActive)handler.postDelayed(this, 3000);
+                if(isSettingsActive)handler.postDelayed(this, 500);
             }
         }, 1000);
         SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
-        distanceBar.setProgress((int)presenceApp.detectionDistance*10);
+        distanceBar.setProgress((int)presenceApp.detectionDistance*5);
         distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int progress = 0;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                presenceApp.detectionDistance= (float) ( progress / 10.0);
+                presenceApp.detectionDistance= (float) ( progress / 5.0);
                 detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
             }
 
@@ -210,19 +213,11 @@ public class startingActivity extends Activity {
     private void clearSettings(){
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
-        presenceApp.beaconName=presenceApp.beaconNameDefault;
-        presenceApp.beaconUUID=presenceApp.beaconUUIDDefault;
-        presenceApp.beaconMajor=presenceApp.beaconMajorDefault;
-        presenceApp.beaconMinor=presenceApp.beaconMinorDefault;
-        presenceApp.username=presenceApp.usernameDefault;
-        presenceApp.password=presenceApp.passwordDefault;
-        presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
-        presenceApp.currentDistance=0;
         killApp();
     }
 
     private void onScanClick(){
-        if(presenceApp.beaconName==null) {
+        if(presenceApp.beaconNameArray.isEmpty()) {
             final Intent intent = new Intent(this, myScanActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
@@ -261,12 +256,13 @@ public class startingActivity extends Activity {
     }
 
     private void onReadyClick(){
-        if(presenceApp.beaconName==null)
+        if(presenceApp.beaconNameArray.isEmpty())
             Toast.makeText(getApplicationContext(), "You need to select your DoBeacon!", Toast.LENGTH_LONG).show();
         else {
             finish();
             try {
-                beaconManager.startRangingBeaconsInRegion(presenceApp.region);
+                for (int i=0; i<presenceApp.regionArray.size();i++)
+                    beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
             } catch (RemoteException e) {
             }
         }

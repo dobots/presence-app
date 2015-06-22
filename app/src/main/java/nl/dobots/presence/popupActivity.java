@@ -58,9 +58,7 @@ public class popupActivity extends Activity implements BeaconConsumer {
     }
     @Override
     public void onBeaconServiceConnect() {
-
-        //put stuff to do when the user comes close to the beacon here
-
+        //we don't care
     }
 
     public void onComingInClick(){
@@ -76,8 +74,10 @@ public class popupActivity extends Activity implements BeaconConsumer {
         final Intent intent = new Intent(this, startingActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {
-            beaconManager.startRangingBeaconsInRegion(presenceApp.region);
-        } catch (RemoteException e) {}
+            for (int i=0; i<presenceApp.regionArray.size();i++)
+                beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
+        } catch (RemoteException e) {
+        }
         startActivity(intent);
         finish();
     }

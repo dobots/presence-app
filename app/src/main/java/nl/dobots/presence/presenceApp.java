@@ -32,51 +32,52 @@ import java.util.Collection;
  */
 public class presenceApp extends Application implements BootstrapNotifier {
 
+    //stored parameters
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.
     public static float currentDistance;
-    public static String beaconUUID;
-    public static String beaconMajor;
-    public static String beaconMinor;
-    public static String beaconName;
-    public static ArrayList<Beacon> targetDoBeaconArray;
+    public static ArrayList<Identifier> beaconUUIDArray = new ArrayList<Identifier>();
+    public static ArrayList<Identifier> beaconMajorArray = new ArrayList<Identifier>();
+    public static ArrayList<Identifier> beaconMinorArray = new ArrayList<Identifier>();
+    public static ArrayList<String> beaconNameArray = new ArrayList<String>() ;
     public static String username;
     public static String password;
     public static final String SETTING_FILE="presenceSettingFile";
 
-    //Default values for first loading
+    //Default values for first loading ever
     final public static float detectionDistanceDefault = 1;
-    final public static String beaconUUIDDefault= null;
-    final public static String beaconMajorDefault=null;
-    final public static String beaconMinorDefault=null;
+    final public static String beaconUUIDDefault= "";
+    final public static String beaconMajorDefault="";
+    final public static String beaconMinorDefault="";
     final public static String usernameDefault=null;
     final public static String passwordDefault=null;
     final public static String beaconNameDefault=null;
 
+    //rest of the parameters
     private static final String TAG = ".presenceApp";
     public static RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
-    static public Region region;
+    static public ArrayList<Region> regionArray = new ArrayList<Region>();
     static public Region noFilterRegion= new Region("noFilter", null, null, null);
-
     private boolean isScreenOn;
-    public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>();;
+    public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>();
+    public static String closestDoBeacon;
 
     @Override
     public void onCreate() {
         super.onCreate();
-        readPersistentStorage();
+        readPersistentStorage(); // retrieve values from previous run
         Log.d(TAG, "App started up");
-        beaconManager= BeaconManager.getInstanceForApplication(this);
-
-        // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
-        if(beaconUUID!=null)
-            region = new Region("backgroundRegion", Identifier.parse(beaconUUID), Identifier.parse(beaconMajor), Identifier.parse(beaconMinor));
-        else
-            region= noFilterRegion;
+        beaconManager = BeaconManager.getInstanceForApplication(this);
         backgroundPowerSaver = new BackgroundPowerSaver(this); //enough to save up to 60% of battery consumption
-        regionBootstrap = new RegionBootstrap(this, region);
+        // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
+        if (!beaconUUIDArray.isEmpty())
+            for (int i = 0; i < beaconUUIDArray.size(); i++)
+                regionArray.add(new Region("backgroundRegion"+String.valueOf(i), beaconUUIDArray.get(i), beaconMajorArray.get(i), beaconMinorArray.get(i)));
+        else
+            regionArray.add(noFilterRegion);
 
+        regionBootstrap= new RegionBootstrap(this,regionArray);
         //Start the sticky service beaconService, which scans permanently for beacons, even when the app is closed.
         final Intent beaconServiceIntent = new Intent (this, beaconService.class);
         this.startService(beaconServiceIntent);
@@ -92,11 +93,17 @@ public class presenceApp extends Application implements BootstrapNotifier {
                 public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
                     if (beacons.size() > 0) {
                         Beacon firstBeacon = beacons.iterator().next();
-                        currentDistance = (float) beacons.iterator().next().getDistance();
-                        Log.i(TAG, "The first beacon" + firstBeacon.toString() + " is about " + currentDistance + " meters away.");
+                        currentDistance = (float) firstBeacon.getDistance();
+                        closestDoBeacon = firstBeacon.getBluetoothName();
+                        Log.i(TAG, "The first beacon " + firstBeacon.getBluetoothName() + " is about " + currentDistance + " meters away.");
                         Log.i(TAG, "beacons.size= " + String.valueOf(beacons.size()));
-                        if (myScanActivity.isScanActivityActive)
-                            doBeaconArray = new ArrayList<Beacon>(beacons);
+                        if (myScanActivity.isScanActivityActive){
+                            for (int i=0;i<beacons.size();i++) {
+                                if (!doBeaconArray.contains(firstBeacon))
+                                    doBeaconArray.add(firstBeacon);
+                                firstBeacon=beacons.iterator().next();
+                            }
+                        }
                         else {
                             if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
                                 Log.i(TAG, "I am in range !");
@@ -104,7 +111,8 @@ public class presenceApp extends Application implements BootstrapNotifier {
                                 wakeScreen();
                                 startActivity(intent);
                                 try {
-                                    beaconManager.stopRangingBeaconsInRegion(region);
+                                    for (int i=0; i<regionArray.size();i++)
+                                        beaconManager.stopRangingBeaconsInRegion(regionArray.get(i));
                                 } catch (RemoteException e) {
                                 }
                             } else Log.i(TAG, "I am too far !");
@@ -113,8 +121,10 @@ public class presenceApp extends Application implements BootstrapNotifier {
                 }
             });
         try {
-            beaconManager.startRangingBeaconsInRegion(region);
-        } catch (RemoteException e) {}
+            for (int i=0; i<regionArray.size();i++)
+                beaconManager.startRangingBeaconsInRegion(regionArray.get(i));
+        } catch (RemoteException e) {
+        }
     }
 
     private void triggerNotification(String s) {
@@ -132,7 +142,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(contentIntent)
                 .setSound(Settings.System.DEFAULT_NOTIFICATION_URI)
-                .setLights(0x0000ff00,500,1000)
+                .setLights(0xFF00FF00,500,1000)
                 .build();
         notification.flags |= Notification.DEFAULT_LIGHTS | Notification.FLAG_AUTO_CANCEL;
         notificationManager.notify(1010, notification);
@@ -141,13 +151,11 @@ public class presenceApp extends Application implements BootstrapNotifier {
     private void wakeScreen() {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         // isScreenOn() is deprecated for API >=20
-        if(android.os.Build.VERSION.SDK_INT>=20)
-        {
+        if(android.os.Build.VERSION.SDK_INT>=20) {
             isScreenOn=pm.isInteractive();
         }
         else isScreenOn=pm.isScreenOn();
-        if(!isScreenOn)
-        {
+        if(!isScreenOn) {
             PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK |PowerManager.ACQUIRE_CAUSES_WAKEUP |PowerManager.ON_AFTER_RELEASE,"MyLock");
             wl.acquire(10000);
             PowerManager.WakeLock wl_cpu = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"MyCpuLock");
@@ -160,11 +168,18 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     private void readPersistentStorage() {
         SharedPreferences settings = getSharedPreferences(SETTING_FILE, 0);
-        detectionDistance=settings.getFloat("detectionDistanceKey",detectionDistanceDefault);
-        beaconUUID= settings.getString("beaconUUIDKey", beaconUUIDDefault);
-        beaconMajor= settings.getString("beaconMajorKey", beaconMajorDefault);
-        beaconMinor= settings.getString("beaconMinorKey", beaconMinorDefault);
-        beaconName=settings.getString("beaconNameKey",beaconNameDefault);
+        detectionDistance=settings.getFloat("detectionDistanceKey", detectionDistanceDefault);
+        int doBeaconListSize =settings.getInt("doBeaconListSize",0);
+        Log.i(TAG,"i= "+ String.valueOf(doBeaconListSize));
+        if(doBeaconListSize>0) {
+            for (int i = 0; i < settings.getInt("doBeaconListSize", 1); i++) {
+                beaconUUIDArray.add(Identifier.parse(settings.getString("beaconUUIDKey" + String.valueOf(i), beaconUUIDDefault)));
+                beaconMajorArray.add(Identifier.parse(settings.getString("beaconMajorKey" + String.valueOf(i), beaconMajorDefault)));
+                beaconMinorArray.add(Identifier.parse(settings.getString("beaconMinorKey" + String.valueOf(i), beaconMinorDefault)));
+                beaconNameArray.add(settings.getString("beaconNameKey" + String.valueOf(i), beaconNameDefault));
+                Log.i(TAG,"added beacon " + beaconNameArray.get(i));
+            }
+        }
         username= settings.getString("usernameKey", usernameDefault);
         password= settings.getString("passwordKey", passwordDefault);
     }
