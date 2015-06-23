@@ -112,7 +112,7 @@ public class startingActivity extends Activity {
     }
 
     public void updateCurrentDistance(){
-        final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
+        final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistanceHint);
         if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeaconAddress))
             currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon + ": " + String.valueOf(presenceApp.currentDistance) + "m");
     }
@@ -144,13 +144,6 @@ public class startingActivity extends Activity {
                 onClearSettingsClick();
             }
         });
-        final Button readyButton=(Button) findViewById(R.id.readyButton);
-        readyButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onReadyClick();
-            }
-        });
         //start seekBar and distance related texts
         final TextView detectionDistanceText = (TextView) findViewById(R.id.detectionDistance);
         detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
@@ -179,13 +172,6 @@ public class startingActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
-        //login stuff
-        if(presenceApp.username!=null && presenceApp.password!=null ) {
-            EditText username = (EditText) findViewById(R.id.username);
-            EditText password = (EditText) findViewById(R.id.password);
-            username.setText(presenceApp.username);
-            password.setText(presenceApp.password);
-        }
     }
 
     private void onStopAppClick() {
@@ -215,7 +201,6 @@ public class startingActivity extends Activity {
     private void clearSettings(){
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
-        killApp();
     }
 
     private void onScanClick(){
@@ -240,27 +225,7 @@ public class startingActivity extends Activity {
         builder.show();
     }
 
-    private void onReadyClick(){
-        if(presenceApp.beaconAddressArray.isEmpty())
-            Toast.makeText(getApplicationContext(), "You need to select your DoBeacon!", Toast.LENGTH_LONG).show();
-        else {
-            finish();
-            try {
-                beaconManager.startRangingBeaconsInRegion(presenceApp.noFilterRegion);
-            } catch (RemoteException e) {
-            }
-        }
-    }
-
     private void onLoginClick() {
-        EditText username=(EditText) findViewById(R.id.username);
-        EditText password=(EditText) findViewById(R.id.password);
-        if(username.getText().toString().length()!=0) {
-            presenceApp.username = username.getText().toString();
-            presenceApp.password = password.getText().toString();
-            Log.i(TAG, "set username to " + presenceApp.username);
-            Toast.makeText(getApplicationContext(), "Welcome " + presenceApp.username + " !", Toast.LENGTH_LONG).show();
-        }
-        else Toast.makeText(getApplicationContext(), "Please enter your credentials.", Toast.LENGTH_LONG).show();
+
     }
 }

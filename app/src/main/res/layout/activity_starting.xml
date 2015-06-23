@@ -40,44 +40,11 @@
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Stop Presence"
-            android:id="@+id/stopButton"
-            android:layout_below="@+id/loginButton"
-            android:layout_alignParentEnd="true"
-            android:layout_marginTop="46dp"/>
-
-        <Button
-            style="?android:attr/buttonStyleSmall"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
             android:text="Search your DoBeacon"
             android:id="@+id/scanButton"
             android:layout_below="@+id/textView2"
-            android:layout_toEndOf="@+id/currentDistanceHint"
-            android:layout_marginTop="34dp"/>
-
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="textPassword"
-            android:ems="10"
-            android:id="@+id/password"
-            android:hint="Password"
-            android:editable="true"
-            android:layout_below="@+id/username"
-            android:layout_alignParentStart="true"/>
-
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="textPersonName"
-            android:ems="10"
-            android:id="@+id/username"
-            android:hint="Username"
-            android:editable="true"
-            android:layout_marginTop="33dp"
-            android:layout_below="@+id/currentDistanceHint"
-            android:layout_alignParentStart="true"/>
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="35dp"/>
 
         <Button
             style="?android:attr/buttonStyleSmall"
@@ -85,9 +52,9 @@
             android:layout_height="wrap_content"
             android:text="Log In"
             android:id="@+id/loginButton"
-            android:layout_alignTop="@+id/username"
-            android:layout_alignEnd="@+id/stopButton"
-            android:layout_alignBottom="@+id/password"
+            android:layout_below="@+id/textView2"
+            android:layout_alignEnd="@+id/textView2"
+            android:layout_marginTop="35dp"
             android:layout_alignStart="@+id/stopButton"/>
 
         <SeekBar
@@ -96,9 +63,9 @@
             android:id="@+id/distanceBar"
             android:visibility="visible"
             android:clickable="false"
-            android:layout_below="@+id/detectionDistanceHint"
+            android:layout_below="@+id/detectionDistance"
             android:layout_alignParentStart="true"
-            android:layout_alignEnd="@+id/stopButton"/>
+            android:layout_alignEnd="@+id/textView2"/>
 
         <TextView
             android:layout_width="wrap_content"
@@ -128,31 +95,26 @@
             android:layout_alignParentStart="true"
             android:layout_marginTop="28dp"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:id="@+id/currentDistance"
-            android:layout_alignTop="@+id/currentDistanceHint"
-            android:layout_toEndOf="@+id/currentDistanceHint"/>
-
         <Button
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="clear Settings"
             android:id="@+id/clearSettingsButton"
-            android:layout_alignTop="@+id/stopButton"
-            android:layout_toEndOf="@+id/currentDistanceHint"/>
+            android:layout_below="@+id/currentDistanceHint"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="10dp"
+            android:layout_alignEnd="@+id/scanButton"/>
 
         <Button
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ready to roll !"
-            android:id="@+id/readyButton"
-            android:layout_alignBottom="@+id/scanButton"
-            android:layout_alignEnd="@+id/textView2"/>
+            android:text="Stop Presence"
+            android:id="@+id/stopButton"
+            android:layout_below="@+id/currentDistanceHint"
+            android:layout_alignEnd="@+id/textView2"
+            android:layout_marginTop="10dp"/>
 
     </RelativeLayout>
 </ScrollView>

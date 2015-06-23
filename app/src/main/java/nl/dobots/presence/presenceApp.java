@@ -103,7 +103,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
                             generateDoBeaconArrayFiltered(beacons);
                             updateRange();
                         }
-                        if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
+                        if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive && !loginActivity.isLoginActivityActive) {
                             onDetection();
                         } else Log.i(TAG, "I am too far ! or Settings is Active");
                     }
