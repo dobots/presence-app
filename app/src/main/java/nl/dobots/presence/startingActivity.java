@@ -37,7 +37,6 @@ public class startingActivity extends Activity {
         //make sure the user's phone is BLE compatible and has BLE enabled. Offers to turn it on otherwise.
         verifyBluetooth();
 
-        //start the distance detection seekbar
         initUI();
 
         Log.i(TAG, "Application just launched");
@@ -47,6 +46,8 @@ public class startingActivity extends Activity {
         super.onDestroy();
         isSettingsActive=false;
         writePersistentSettings();
+        final Intent restartAppIntent = new Intent (this, presenceApp.class);
+        this.startService(restartAppIntent);
 
     }
 
@@ -102,6 +103,7 @@ public class startingActivity extends Activity {
             editor.putString("beaconMajorKey" + String.valueOf(i), presenceApp.beaconMajorArray.get(i).toString());
             editor.putString("beaconMinorKey" + String.valueOf(i), presenceApp.beaconMinorArray.get(i).toString());
             editor.putString("beaconNameKey" + String.valueOf(i), presenceApp.beaconNameArray.get(i));
+            editor.putString("beaconAdressKey"+ String.valueOf(i),presenceApp.beaconAddressArray.get(i));
         }
         editor.putString("usernameKey",presenceApp.username);
         editor.putString("passwordKey",presenceApp.password);
@@ -111,7 +113,7 @@ public class startingActivity extends Activity {
 
     public void updateCurrentDistance(){
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistance);
-        if (!presenceApp.beaconNameArray.isEmpty() && presenceApp.beaconNameArray.contains(presenceApp.closestDoBeacon))
+        if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeaconAddress))
             currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon + ": " + String.valueOf(presenceApp.currentDistance) + "m");
     }
 
@@ -217,26 +219,9 @@ public class startingActivity extends Activity {
     }
 
     private void onScanClick(){
-        if(presenceApp.beaconNameArray.isEmpty()) {
-            final Intent intent = new Intent(this, myScanActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        }
-        else {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("doBeacon already set");
-            builder.setMessage("You have already selected a DoBeacon.delete all settings? (you will have a to restart the app)");
-            builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                   clearSettings();
-                }
-            });
-            builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int id) {
-                }
-            });
-            builder.show();
-        }
+        final Intent intent = new Intent(this, myScanActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 
     private void onClearSettingsClick(){
@@ -256,13 +241,12 @@ public class startingActivity extends Activity {
     }
 
     private void onReadyClick(){
-        if(presenceApp.beaconNameArray.isEmpty())
+        if(presenceApp.beaconAddressArray.isEmpty())
             Toast.makeText(getApplicationContext(), "You need to select your DoBeacon!", Toast.LENGTH_LONG).show();
         else {
             finish();
             try {
-                for (int i=0; i<presenceApp.regionArray.size();i++)
-                    beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
+                beaconManager.startRangingBeaconsInRegion(presenceApp.noFilterRegion);
             } catch (RemoteException e) {
             }
         }

@@ -55,11 +55,8 @@ public class popupActivity extends Activity implements BeaconConsumer {
     protected void onDestroy() {
         beaconManager.unbind(this);
         super.onDestroy();
-        try {
-            for (int i=0; i<presenceApp.regionArray.size();i++)
-                beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
-        } catch (RemoteException e) {
-        }
+        final Intent restartAppIntent = new Intent (this, presenceApp.class);
+        this.startService(restartAppIntent);
     }
     @Override
     public void onBeaconServiceConnect() {

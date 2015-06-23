@@ -36,11 +36,11 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     //stored parameters. We can't store an ArrayList<Beacon> so we go through this complicated stuff
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.
-    public static float currentDistance;
     public static ArrayList<Identifier> beaconUUIDArray = new ArrayList<Identifier>();
     public static ArrayList<Identifier> beaconMajorArray = new ArrayList<Identifier>();
     public static ArrayList<Identifier> beaconMinorArray = new ArrayList<Identifier>();
-    public static ArrayList<String> beaconNameArray = new ArrayList<String>() ;
+    public static ArrayList<String> beaconNameArray = new ArrayList<String>();
+    public static ArrayList<String> beaconAddressArray= new ArrayList<String>();
     public static String username;
     public static String password;
     public static final String SETTING_FILE="presenceSettingFile";
@@ -53,18 +53,21 @@ public class presenceApp extends Application implements BootstrapNotifier {
     final public static String usernameDefault=null;
     final public static String passwordDefault=null;
     final public static String beaconNameDefault=null;
+    final public static String beaconAddressDefault=null;
+
 
     //rest of the parameters
     private static final String TAG = ".presenceApp";
     public static RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
-    static public ArrayList<Region> regionArray = new ArrayList<Region>();
     static public Region noFilterRegion= new Region("noFilter", null, null, null);
     private boolean isScreenOn;
     public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>(); // list of doBeacon we are scanning for
     public static String closestDoBeacon;
-    public ArrayList<Beacon> doBeaconWantedArray = new ArrayList<Beacon>(); //list of doBeacon we are scanning for AND we found
+    public static String closestDoBeaconAddress;
+    public static float currentDistance=-1;
+    public static boolean isScanning;
 
     @Override
     public void onCreate() {
@@ -73,13 +76,8 @@ public class presenceApp extends Application implements BootstrapNotifier {
         Log.d(TAG, "App started up");
         beaconManager = BeaconManager.getInstanceForApplication(this);
         backgroundPowerSaver = new BackgroundPowerSaver(this); //enough to save up to 60% of battery consumption
-        // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
-        if (!beaconUUIDArray.isEmpty())
-            for (int i = 0; i < beaconUUIDArray.size(); i++)
-                regionArray.add(new Region("backgroundRegion"+String.valueOf(i), beaconUUIDArray.get(i), beaconMajorArray.get(i), beaconMinorArray.get(i)));
-        else
-            regionArray.add(noFilterRegion);
 
+        // wake up the app when any beacon is seen (you can specify specific id filers in the parameters below.Also wakes up the app when connected
         regionBootstrap= new RegionBootstrap(this,noFilterRegion);
         //Start the sticky service beaconService, which scans permanently for beacons, even when the app is closed.
         final Intent beaconServiceIntent = new Intent (this, beaconService.class);
@@ -89,64 +87,91 @@ public class presenceApp extends Application implements BootstrapNotifier {
     @Override
     public void didEnterRegion(Region arg0) { //called when the DoBeacon is seen. Used by the RegionBootstrap to start the app
         Log.d(TAG, "Got a didEnterRegion call");
-        final Intent intent = new Intent(this, popupActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            beaconManager.setRangeNotifier(new RangeNotifier() {
-                @Override
-                public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
-                    if (beacons.size() > 0) {
-                        Iterator iterator = beacons.iterator();
-                        Beacon firstBeacon = beacons.iterator().next();
-                        doBeaconWantedArray.clear();
-                        for (int i=0; i<beacons.size();i++) {
-                            if (doBeaconArray.contains(firstBeacon)){
-                                if(doBeaconWantedArray.isEmpty())
-                                    updateRange(firstBeacon); //the first beacon to get so far is the closest one that we see and we are looking for
-                                doBeaconWantedArray.add(firstBeacon);
-                            }
+        startTracking();
+    }
 
-                            firstBeacon = (Beacon) iterator.next();
+    public void startTracking(){
+        beaconManager.setRangeNotifier(new RangeNotifier() {
+            @Override
+            public void didRangeBeaconsInRegion(Collection<Beacon> beacons, Region region) {
+                if (beacons.size() > 0) {
+                    Log.i(TAG, "beacons.size= " + String.valueOf(beacons.size()));
+                    if (myScanActivity.isScanActivityActive) { //generate the array of all doBeacons in range, to show in ScanActivity and let user select the one to track
+                        generateDoBeaconArrayUnfiltered(beacons);
+                    } else {
+                        if (!beaconAddressArray.isEmpty()) {
+                            generateDoBeaconArrayFiltered(beacons);
+                            updateRange();
                         }
-                        Log.i(TAG, "The first beacon " + firstBeacon.getBluetoothName() + " is about " + firstBeacon.getDistance() + " meters away.");
-                        Log.i(TAG, "beacons.size= " + String.valueOf(beacons.size()));
-                        if (myScanActivity.isScanActivityActive) {
-                            for (int i = 0; i < beacons.size(); i++) {
-                                if (!doBeaconArray.contains(firstBeacon))
-                                    doBeaconArray.add(firstBeacon);
-                                firstBeacon = (Beacon) iterator.next();
-                            }
-                        } else {
-                            if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
-                                Log.i(TAG, "I am in range !");
-                                triggerNotification("Hey! Are you going in or out?");
-                                wakeScreen();
-                                startActivity(intent);
-                                try {
-                                    for (int i = 0; i < regionArray.size(); i++)
-                                        beaconManager.stopRangingBeaconsInRegion(regionArray.get(i));
-                                } catch (RemoteException e) {
-                                }
-                            } else Log.i(TAG, "I am too far ! or Settings is Active");
-                        }
+                        if (currentDistance <= detectionDistance && !startingActivity.isSettingsActive) {
+                            onDetection();
+                        } else Log.i(TAG, "I am too far ! or Settings is Active");
                     }
                 }
-            });
+            }
+        });
         try {
-            for (int i = 0; i < regionArray.size(); i++)
-             beaconManager.startRangingBeaconsInRegion(regionArray.get(i));
+            beaconManager.startRangingBeaconsInRegion(noFilterRegion);
         } catch (RemoteException e) {
         }
     }
 
-    public void updateRange(Beacon firstBeacon){
-        if(firstBeacon.getBluetoothName().equals(closestDoBeacon)) { // use .equals (test value) instead of == (test ref).
-            currentDistance = (float) firstBeacon.getDistance();;
-        }
-        else {
-            if (firstBeacon.getDistance() <= currentDistance || closestDoBeacon== null) {
-                closestDoBeacon = firstBeacon.getBluetoothName();
-                currentDistance = (float) firstBeacon.getDistance();
+    public void updateRange(){
+        if (!doBeaconArray.isEmpty()) {
+            //initialize first range
+            if(currentDistance==-1){
+                currentDistance= (float) doBeaconArray.get(0).getDistance();
+                closestDoBeacon= doBeaconArray.get(0).getBluetoothName();
+                closestDoBeaconAddress=doBeaconArray.get(0).getBluetoothAddress();
             }
+            //update distance last closest doBeacon
+            for (int i=0; i<doBeaconArray.size();i++){
+                if(doBeaconArray.get(i).getBluetoothAddress().equals(closestDoBeaconAddress))
+                    currentDistance= (float)doBeaconArray.get(i).getDistance();
+            }
+            //check if any doBeacon is closer
+            for (int i=0; i< doBeaconArray.size();i++)
+                if (doBeaconArray.get(i).getDistance() < currentDistance) {
+                    closestDoBeacon = doBeaconArray.get(i).getBluetoothName();
+                    closestDoBeaconAddress = doBeaconArray.get(i).getBluetoothAddress();
+                    currentDistance = (float) doBeaconArray.get(i).getDistance();
+                }
+            Log.i(TAG, "The first beacon " + closestDoBeacon + " is about " + currentDistance + " meters away.");
+        }
+    }
+
+    public void generateDoBeaconArrayFiltered(Collection<Beacon> beacons){
+        Iterator iterator = beacons.iterator();
+        Beacon firstBeacon;
+        doBeaconArray.clear();
+        for (int i=0; i<beacons.size();i++) {
+            firstBeacon = (Beacon) iterator.next();
+            if (beaconAddressArray.contains(firstBeacon.getBluetoothAddress())){
+                doBeaconArray.add(firstBeacon);
+            }
+        }
+    }
+
+    public void generateDoBeaconArrayUnfiltered(Collection<Beacon> beacons){
+        Iterator iterator = beacons.iterator();
+        Beacon firstBeacon;
+        for (int i = 0; i < beacons.size(); i++) {
+            firstBeacon = (Beacon) iterator.next();
+            if (!doBeaconArray.contains(firstBeacon))
+                doBeaconArray.add(firstBeacon);
+        }
+    }
+
+    public void onDetection(){
+        final Intent intent = new Intent(this, popupActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        Log.i(TAG, "I am in range !");
+        triggerNotification("Hey! Are you going in or out?");
+        wakeScreen();
+        startActivity(intent);
+        try {
+            beaconManager.stopRangingBeaconsInRegion(noFilterRegion);
+        } catch (RemoteException e) {
         }
     }
 
@@ -156,9 +181,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
         CharSequence message = s;
         NotificationManager notificationManager;
         notificationManager = (NotificationManager) getSystemService(this.NOTIFICATION_SERVICE);
-        //Play a notification sound
-        Uri notificationSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-
         Notification notification = new Notification.Builder(this)
                 .setContentTitle("Presence")
                 .setContentText(message)
@@ -200,7 +222,8 @@ public class presenceApp extends Application implements BootstrapNotifier {
                 beaconMajorArray.add(Identifier.parse(settings.getString("beaconMajorKey" + String.valueOf(i), beaconMajorDefault)));
                 beaconMinorArray.add(Identifier.parse(settings.getString("beaconMinorKey" + String.valueOf(i), beaconMinorDefault)));
                 beaconNameArray.add(settings.getString("beaconNameKey" + String.valueOf(i), beaconNameDefault));
-                Log.i(TAG,"added beacon " + beaconNameArray.get(i));
+                beaconAddressArray.add(settings.getString("beaconAdressKey" + String.valueOf(i), beaconAddressDefault));
+                Log.i(TAG,"added beacon " + beaconNameArray.get(i) + "with adress " + beaconAddressArray.get(i));
             }
         }
         username= settings.getString("usernameKey", usernameDefault);

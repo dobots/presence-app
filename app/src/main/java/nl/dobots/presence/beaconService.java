@@ -11,6 +11,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
@@ -24,7 +26,7 @@ import org.altbeacon.beacon.BeaconParser;
 public class beaconService extends Service {
     private BeaconManager beaconManager;
     private String TAG = ".beaconService";
-
+    final Handler handler = new Handler();
     BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -75,8 +77,10 @@ public class beaconService extends Service {
                 .setContentText(message)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentIntent(contentIntent)
+                .setDefaults(Notification.DEFAULT_SOUND)
+                .setLights(Color.BLUE, 500, 1000)
+                .setAutoCancel(true)
                 .build();
-        notification.flags = Notification.DEFAULT_LIGHTS | Notification.FLAG_AUTO_CANCEL;
         notificationManager.notify(1011, notification);
     }
 
