@@ -55,6 +55,11 @@ public class popupActivity extends Activity implements BeaconConsumer {
     protected void onDestroy() {
         beaconManager.unbind(this);
         super.onDestroy();
+        try {
+            for (int i=0; i<presenceApp.regionArray.size();i++)
+                beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
+        } catch (RemoteException e) {
+        }
     }
     @Override
     public void onBeaconServiceConnect() {
@@ -73,11 +78,6 @@ public class popupActivity extends Activity implements BeaconConsumer {
     public void onSettingsClick(){
         final Intent intent = new Intent(this, startingActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try {
-            for (int i=0; i<presenceApp.regionArray.size();i++)
-                beaconManager.startRangingBeaconsInRegion(presenceApp.regionArray.get(i));
-        } catch (RemoteException e) {
-        }
         startActivity(intent);
         finish();
     }

@@ -46,7 +46,7 @@ public class beaconService extends Service {
         this.registerReceiver(mReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         beaconManager = BeaconManager.getInstanceForApplication(this);
         try {
-            beaconManager.setBackgroundBetweenScanPeriod(100);
+            beaconManager.setBackgroundBetweenScanPeriod(0);
             beaconManager.setForegroundBetweenScanPeriod(0);
             beaconManager.setBackgroundScanPeriod(3000);
             beaconManager.setForegroundScanPeriod(3000);
