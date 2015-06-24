@@ -8,23 +8,19 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.RemoteException;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.altbeacon.beacon.BeaconManager;
-import org.altbeacon.beacon.Identifier;
 
 /**
  * Created by christian on 15/06/15.
  */
 public class startingActivity extends Activity {
-    protected static final String TAG = "startingActivity";
+    protected static final String TAG = startingActivity.class.getCanonicalName();
     public static boolean isSettingsActive;
     final Handler handler = new Handler();
     private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
@@ -94,20 +90,8 @@ public class startingActivity extends Activity {
         //store the settings in the Shared Preference file
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         SharedPreferences.Editor editor = settings.edit();
-        editor.clear();
+        editor.remove("detectionDistanceKey");
         editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
-        editor.putInt("doBeaconListSize", presenceApp.beaconUUIDArray.size());
-        for (int i=0;i<presenceApp.beaconUUIDArray.size();i++)
-        {
-            editor.putString("beaconUUIDKey" + String.valueOf(i), presenceApp.beaconUUIDArray.get(i).toString());
-            editor.putString("beaconMajorKey" + String.valueOf(i), presenceApp.beaconMajorArray.get(i).toString());
-            editor.putString("beaconMinorKey" + String.valueOf(i), presenceApp.beaconMinorArray.get(i).toString());
-            editor.putString("beaconNameKey" + String.valueOf(i), presenceApp.beaconNameArray.get(i));
-            editor.putString("beaconAdressKey"+ String.valueOf(i),presenceApp.beaconAddressArray.get(i));
-        }
-        editor.putString("usernameKey",presenceApp.username);
-        editor.putString("passwordKey",presenceApp.password);
-        // Commit the edits!
         editor.commit();
     }
 
@@ -115,6 +99,8 @@ public class startingActivity extends Activity {
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistanceHint);
         if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeaconAddress))
             currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon + ": " + String.valueOf(presenceApp.currentDistance) + "m");
+        else
+            currentDistanceText.setText("Please select your Dobeacons !");
     }
 
     private void initUI(){
@@ -201,10 +187,21 @@ public class startingActivity extends Activity {
     private void clearSettings(){
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
+        presenceApp.closestDoBeacon=null;
+        presenceApp.doBeaconArray.clear();
+        presenceApp.beaconNameArray.clear();
+        presenceApp.beaconAddressArray.clear();
+        presenceApp.beaconMajorArray.clear();
+        presenceApp.beaconUUIDArray.clear();
+        presenceApp.beaconMinorArray.clear();
+        presenceApp.password=presenceApp.passwordDefault;
+        presenceApp.username=presenceApp.usernameDefault;
+        presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
+        initUI();
     }
 
     private void onScanClick(){
-        final Intent intent = new Intent(this, myScanActivity.class);
+        final Intent intent = new Intent(this, scanActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         startActivity(intent);
     }
@@ -226,6 +223,8 @@ public class startingActivity extends Activity {
     }
 
     private void onLoginClick() {
-
+        final Intent loginIntent = new Intent(this,loginActivity.class);
+        loginIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(loginIntent);
     }
 }

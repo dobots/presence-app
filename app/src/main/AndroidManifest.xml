@@ -42,7 +42,7 @@
         </activity>
         <activity
             android:launchMode="singleInstance"
-            android:name=".myScanActivity"
+            android:name=".scanActivity"
             android:screenOrientation="portrait"
             android:label="@string/app_name">
         </activity>

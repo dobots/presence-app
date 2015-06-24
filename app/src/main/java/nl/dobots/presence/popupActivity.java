@@ -16,7 +16,7 @@ import org.altbeacon.beacon.BeaconManager;
  * Created by christian Haas-Frangi on 15/06/15.
  */
 public class popupActivity extends Activity implements BeaconConsumer {
-    protected static final String TAG = "popupActivity";
+    protected static final String TAG = popupActivity.class.getCanonicalName();
     private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
 
     @Override

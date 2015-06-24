@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/content_login"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingTop="@dimen/login_padding_vertical"
+            android:paddingBottom="@dimen/login_padding_vertical"
+            android:paddingLeft="@dimen/login_padding_horizontal"
+            android:paddingRight="@dimen/login_padding_horizontal"
+            >
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <LinearLayout
+                    android:id="@+id/login_form"
+                    android:visibility="visible"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    >
+
+                    <EditText
+                        android:id="@+id/input_username"
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:layout_marginTop="20dp"
+                        android:padding="12dp"
+                        android:hint="@string/login_username"
+                        android:inputType="textEmailAddress"
+                        android:singleLine="true"
+                        />
+
+                    <!--
+                    <View
+                      android:layout_height="1dp"
+                      android:layout_width="match_parent"
+                      android:background="@color/sand"
+                      />
+                      -->
+
+                    <EditText
+                        android:id="@+id/input_password"
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:padding="12dp"
+                        android:hint="@string/login_password"
+                        android:inputType="textPassword"
+                        android:singleLine="true"
+                        android:imeActionId="@+id/login"
+                        android:imeActionLabel="@string/login_submit"
+                        android:imeOptions="actionUnspecified"
+                        android:layout_marginTop="-1dip"
+                        /> <!-- -1dip margin top to overlay the borders/strokes -->
+
+                    <Spinner
+                        android:id="@+id/backend_servers"
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:padding="6dp"
+                        android:hint="@string/login_system"
+                        android:layout_marginTop="-1dip"
+                        /> <!-- -1dip margin top to overlay the borders/strokes -->
+
+                    <Button
+                        android:id="@+id/btn_login"
+                        android:layout_height="@dimen/button_height"
+                        android:layout_width="match_parent"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/login_submit"
+                        android:textStyle="bold"
+                        />
+                </LinearLayout>
+
+            </FrameLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>

@@ -20,13 +20,16 @@ import android.util.Log;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
 
+import nl.dobots.presence.rest.RestApi;
+
 /**
  * Created by christian Haas-Frangi on 16/06/15.
  */
 public class beaconService extends Service {
     private BeaconManager beaconManager;
-    private String TAG = ".beaconService";
-    final Handler handler = new Handler();
+    private String TAG = beaconService.class.getCanonicalName();
+
+    //BLE Adapter to remember user not to turn BLE off
     BluetoothAdapter btAdapter = BluetoothAdapter.getDefaultAdapter();
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
