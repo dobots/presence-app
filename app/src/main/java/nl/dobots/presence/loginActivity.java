@@ -84,8 +84,8 @@ public class loginActivity extends Activity {
 
                     // Login request
                     try {
-                        presenceApp.ra.login(presenceApp.username, presenceApp.password, presenceApp.server, presenceApp.closestDoBeacon);
-                        if(presenceApp.ra.getStandByApi().setLocationPresenceManually(true, presenceApp.closestDoBeacon).get(0)) {
+                        presenceApp.ra.login(presenceApp.username, presenceApp.password, presenceApp.server, presenceApp.closestDoBeacon.getBluetoothName());
+                        if(presenceApp.ra.getStandByApi().setLocationPresenceManually(true, presenceApp.closestDoBeacon.getBluetoothName()).get(0)) {
                             presenceApp.isLoggedIn=true;
                             hideKeyboard();
                             Toast.makeText(getApplicationContext(),"Welcome " + presenceApp.username+ " !",Toast.LENGTH_SHORT).show();

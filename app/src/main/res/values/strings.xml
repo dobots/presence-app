@@ -6,9 +6,7 @@
 
     <!--Starting activity strings -->
     <string name="setting_title">Welcome to the Presence app!</string>
-    <string name="message_setting">Select your DoBeacon, fill your credentials and you are good to go !
-        \n Afterwards, you can close the app, it will run silently in the background, and you don\'t have anything to do :)
-        \n If you want to close the background services for some obscures reasons, hit the \"Stop Presence\" Button ! </string>
+    <string name="message_setting">Select your DoBeacons, fill your credentials and close the app ! </string>
     <string name="distance"/>
 
     <!--General strings -->

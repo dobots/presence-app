@@ -97,10 +97,13 @@ public class startingActivity extends Activity {
 
     public void updateCurrentDistance(){
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistanceHint);
-        if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeaconAddress))
-            currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon + ": " + String.valueOf(presenceApp.currentDistance) + "m");
+        if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeacon.getBluetoothAddress()))
+            currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon.getBluetoothName() + ": " + String.valueOf(presenceApp.closestDoBeacon.getDistance()) + "m");
         else
-            currentDistanceText.setText("Please select your Dobeacons !");
+            if(presenceApp.beaconAddressArray.isEmpty())
+                currentDistanceText.setText("Please select your Dobeacons !");
+            else
+                currentDistanceText.setText("loading...");
     }
 
     private void initUI(){
@@ -187,7 +190,7 @@ public class startingActivity extends Activity {
     private void clearSettings(){
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
-        presenceApp.closestDoBeacon=null;
+        presenceApp.buildClosestBeacon();
         presenceApp.doBeaconArray.clear();
         presenceApp.beaconAddressArray.clear();
         presenceApp.password=presenceApp.passwordDefault;

@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/content_login"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/background_blue">
 
     <ScrollView
         android:layout_width="match_parent"
@@ -42,14 +43,6 @@
                         android:singleLine="true"
                         />
 
-                    <!--
-                    <View
-                      android:layout_height="1dp"
-                      android:layout_width="match_parent"
-                      android:background="@color/sand"
-                      />
-                      -->
-
                     <EditText
                         android:id="@+id/input_password"
                         android:layout_height="wrap_content"
@@ -62,7 +55,7 @@
                         android:imeActionLabel="@string/login_submit"
                         android:imeOptions="actionUnspecified"
                         android:layout_marginTop="-1dip"
-                        /> <!-- -1dip margin top to overlay the borders/strokes -->
+                        />
 
                     <Button
                         android:id="@+id/btn_login"
@@ -71,6 +64,12 @@
                         android:layout_marginTop="20dp"
                         android:text="@string/login_submit"
                         android:textStyle="bold"
+                        android:background="@drawable/buttonshape"
+                        android:shadowColor="#0000FF"
+                        android:shadowDx="0"
+                        android:shadowDy="0"
+                        android:shadowRadius="5"
+                        android:textColor="#FFFFFF"
                         />
                 </LinearLayout>
 
