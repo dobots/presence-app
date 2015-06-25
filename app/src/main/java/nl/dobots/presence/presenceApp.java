@@ -14,7 +14,6 @@ import android.os.Vibrator;
 import android.util.Log;
 
 import org.altbeacon.beacon.Beacon;
-import org.altbeacon.beacon.Beacon.Builder;
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.RangeNotifier;
 import org.altbeacon.beacon.Region;
@@ -144,7 +143,9 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
             //check if any doBeacon is closer
             for (int i=0; i< doBeaconArray.size();i++) {
-                Log.i(TAG,"I am at "+ String.valueOf(doBeaconArray.get(i).getDistance()) +"m from "+doBeaconArray.get(i).getBluetoothName() + " " + doBeaconArray.get(i).getBluetoothAddress());
+                Log.i(TAG,"I am at "+ String.valueOf(doBeaconArray.get(i).getDistance()) +"m "
+                        +"which corresponds to " + String.valueOf(doBeaconArray.get(i).getRssi())+"dBm from "
+                        + doBeaconArray.get(i).getBluetoothName() + " " + doBeaconArray.get(i).getBluetoothAddress());
                 if (doBeaconArray.get(i).getDistance() < closestDoBeacon.getDistance()) {
                     closestDoBeacon = doBeaconArray.get(i);
                     Log.i(TAG,"updating distance from"+ closestDoBeacon.getBluetoothName() + " at "+ closestDoBeacon.getDistance()+"m.");

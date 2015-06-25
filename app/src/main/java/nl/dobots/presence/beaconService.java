@@ -53,8 +53,8 @@ public class beaconService extends Service {
         try {
             beaconManager.setBackgroundBetweenScanPeriod(0);
             beaconManager.setForegroundBetweenScanPeriod(0);
-            beaconManager.setBackgroundScanPeriod(3000);
-            beaconManager.setForegroundScanPeriod(3000);
+            beaconManager.setBackgroundScanPeriod(5000);
+            beaconManager.setForegroundScanPeriod(5000);
             beaconManager.updateScanPeriods();
         }
         catch (RemoteException e) { }
