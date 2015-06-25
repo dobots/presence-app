@@ -66,7 +66,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
 
     public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>(); // list of doBeacon we are scanning for
-    public static ArrayList<Beacon> doBeaconUnfilteredArray = new ArrayList<Beacon>();
     public static String closestDoBeacon;
     public static String closestDoBeaconAddress;
     public static float currentDistance=-1;
@@ -167,8 +166,8 @@ public class presenceApp extends Application implements BootstrapNotifier {
         Beacon firstBeacon;
         for (int i = 0; i < beacons.size(); i++) {
             firstBeacon = (Beacon) iterator.next();
-            if (!doBeaconUnfilteredArray.contains(firstBeacon))
-                doBeaconUnfilteredArray.add(firstBeacon);
+            if (!doBeaconArray.contains(firstBeacon))
+                doBeaconArray.add(firstBeacon);
         }
     }
 
@@ -181,7 +180,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
         try {
             if (isLoggedIn && !closestDoBeacon.equals(currentLocation)){
                 ra.getStandByApi().setLocationPresenceManually(true, closestDoBeacon);
-                currentLocation=closestDoBeacon
+                currentLocation=closestDoBeacon;
         }
             else
                 login();
@@ -269,6 +268,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     @Override
     public void didExitRegion(Region arg0) {
-        // Don't care
+        //we can do something here like logout or set absent but I don't know the function for
+        ra.getStandByApi().setLocationPresenceManually(false,"somewhere in the wild");
     }
 }

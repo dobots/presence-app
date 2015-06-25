@@ -37,14 +37,15 @@ public class scanActivity extends Activity implements OnItemClickListener {
     static public boolean isScanActivityActive;
     private boolean isLoadingOn;
     public  ProgressDialog progress;
-    static public CustomAdapter customAdapter;
+    public CustomAdapter customAdapter;
+    public ArrayList<Beacon> doBeaconUnfilteredArray = new ArrayList<Beacon>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.custom_listview);
         isScanActivityActive=true;
-        presenceApp.doBeaconUnfilteredArray=presenceApp.doBeaconArray;
+        doBeaconUnfilteredArray=presenceApp.doBeaconArray;
         //show a progress message
         progress = new ProgressDialog(this);
         progress.setTitle("Scanning");
@@ -55,7 +56,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
         // To show the doBeacons in a list
         doBeaconListView = (ListView) findViewById(R.id.doBeaconListView);
         // Initialize our Adapter and plug it to the ListView
-        final CustomAdapter customAdapter = new CustomAdapter(presenceApp.doBeaconUnfilteredArray);
+        final CustomAdapter customAdapter = new CustomAdapter(doBeaconUnfilteredArray);
         doBeaconListView.setAdapter(customAdapter);
         // Activate the Click even of the List items
         doBeaconListView.setOnItemClickListener(this);
@@ -65,12 +66,12 @@ public class scanActivity extends Activity implements OnItemClickListener {
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (!presenceApp.doBeaconUnfilteredArray.isEmpty()) {
+                if (!doBeaconUnfilteredArray.isEmpty()) {
                     if (isLoadingOn) {
                         progress.dismiss();
                         isLoadingOn = false;
                     }
-                    customAdapter.updateResults(presenceApp.doBeaconUnfilteredArray);
+                    customAdapter.updateResults(doBeaconUnfilteredArray);
                 }
                 if (isScanActivityActive)
                     handler.postDelayed(this, 500);
@@ -126,7 +127,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
 
         @Override
         public long getItemId(int position) {
-            return 2500;
+            return position;
         }
 
         public void updateResults(ArrayList<Beacon> results) {
@@ -170,21 +171,21 @@ public class scanActivity extends Activity implements OnItemClickListener {
 
     @Override
     public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-        if(!presenceApp.beaconUUIDArray.contains(presenceApp.doBeaconUnfilteredArray.get(arg2).getId1())) {
-            presenceApp.beaconUUIDArray.add(presenceApp.doBeaconUnfilteredArray.get(arg2).getId1());
-            presenceApp.beaconMajorArray.add(presenceApp.doBeaconUnfilteredArray.get(arg2).getId2());
-            presenceApp.beaconMinorArray.add(presenceApp.doBeaconUnfilteredArray.get(arg2).getId3());
-            presenceApp.beaconNameArray.add(presenceApp.doBeaconUnfilteredArray.get(arg2).getBluetoothName());
-            presenceApp.beaconAddressArray.add(presenceApp.doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
-            presenceApp.currentDistance= (float) presenceApp.doBeaconUnfilteredArray.get(arg2).getDistance();
+        if(!presenceApp.beaconUUIDArray.contains(doBeaconUnfilteredArray.get(arg2).getId1())) {
+            presenceApp.beaconUUIDArray.add(doBeaconUnfilteredArray.get(arg2).getId1());
+            presenceApp.beaconMajorArray.add(doBeaconUnfilteredArray.get(arg2).getId2());
+            presenceApp.beaconMinorArray.add(doBeaconUnfilteredArray.get(arg2).getId3());
+            presenceApp.beaconNameArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothName());
+            presenceApp.beaconAddressArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
+            presenceApp.currentDistance= (float) doBeaconUnfilteredArray.get(arg2).getDistance();
             arg1.setBackgroundColor(0x660000FF);
         }
         else{
-            presenceApp.beaconUUIDArray.remove(presenceApp.doBeaconUnfilteredArray.get(arg2).getId1());
-            presenceApp.beaconMajorArray.remove(presenceApp.doBeaconUnfilteredArray.get(arg2).getId2());
-            presenceApp.beaconMinorArray.remove(presenceApp.doBeaconUnfilteredArray.get(arg2).getId3());
-            presenceApp.beaconNameArray.remove(presenceApp.doBeaconUnfilteredArray.get(arg2).getBluetoothName());
-            presenceApp.beaconAddressArray.remove(presenceApp.doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
+            presenceApp.beaconUUIDArray.remove(doBeaconUnfilteredArray.get(arg2).getId1());
+            presenceApp.beaconMajorArray.remove(doBeaconUnfilteredArray.get(arg2).getId2());
+            presenceApp.beaconMinorArray.remove(doBeaconUnfilteredArray.get(arg2).getId3());
+            presenceApp.beaconNameArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothName());
+            presenceApp.beaconAddressArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
             arg1.setBackgroundColor(0x00000000);
         }
 
