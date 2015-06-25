@@ -3,6 +3,7 @@ package nl.dobots.presence;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -15,6 +16,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import org.altbeacon.beacon.BeaconManager;
+
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
 
 /**
  * Created by christian on 15/06/15.
@@ -189,11 +193,7 @@ public class startingActivity extends Activity {
         settings.edit().clear().commit();
         presenceApp.closestDoBeacon=null;
         presenceApp.doBeaconArray.clear();
-        presenceApp.beaconNameArray.clear();
         presenceApp.beaconAddressArray.clear();
-        presenceApp.beaconMajorArray.clear();
-        presenceApp.beaconUUIDArray.clear();
-        presenceApp.beaconMinorArray.clear();
         presenceApp.password=presenceApp.passwordDefault;
         presenceApp.username=presenceApp.usernameDefault;
         presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
@@ -209,7 +209,7 @@ public class startingActivity extends Activity {
     private void onClearSettingsClick(){
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("removing settings");
-        builder.setMessage("Your stored settings will be removed. You will have to restart the app and reconfigure it !");
+        builder.setMessage("Your stored settings will be removed. You will have to reconfigure it !");
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int id) {
                 clearSettings();

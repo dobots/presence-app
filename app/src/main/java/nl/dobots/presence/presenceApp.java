@@ -22,6 +22,7 @@ import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 import org.altbeacon.beacon.startup.BootstrapNotifier;
 import org.altbeacon.beacon.startup.RegionBootstrap;
 
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,10 +36,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     //stored parameters. We can't store an ArrayList<Beacon> so we go through this complicated stuff
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.
-    public static ArrayList<Identifier> beaconUUIDArray = new ArrayList<Identifier>();
-    public static ArrayList<Identifier> beaconMajorArray = new ArrayList<Identifier>();
-    public static ArrayList<Identifier> beaconMinorArray = new ArrayList<Identifier>();
-    public static ArrayList<String> beaconNameArray = new ArrayList<String>();
     public static ArrayList<String> beaconAddressArray= new ArrayList<String>();
     public static String username;
     public static String password;
@@ -46,35 +43,28 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     //Default values for first loading ever
     final public static float detectionDistanceDefault = 1;
-    final public static String beaconUUIDDefault= "";
-    final public static String beaconMajorDefault="";
-    final public static String beaconMinorDefault="";
     final public static String usernameDefault="";
     final public static String passwordDefault="";
-    final public static String beaconNameDefault=null;
     final public static String beaconAddressDefault=null;
 
-
-    //rest of the parameters
     private static final String TAG = presenceApp.class.getCanonicalName();
     public static RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
     static public Region noFilterRegion= new Region("noFilter", null, null, null);
     private boolean isScreenOn;
-    private String currentLocation;
-
 
     public static ArrayList<Beacon> doBeaconArray= new ArrayList<Beacon>(); // list of doBeacon we are scanning for
+    public Beacon firstBeacon;
     public static String closestDoBeacon;
     public static String closestDoBeaconAddress;
     public static float currentDistance=-1;
     public static boolean isLoggedIn;
-    public static String server = "http://dev.ask-cs.com"; //backend
-
+    public String currentLocation;
 
     // Make sure to keep a reference to the rest API object to make sure it's not garbage collected
     public static final RestApi ra = RestApi.getInstance();
+    public static String server = "http://dev.ask-cs.com"; //backend
 
     @Override
     public void onCreate() {
@@ -111,7 +101,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
                             generateDoBeaconArrayFiltered(beacons);
                             updateRange();
                         }
-                        if (currentDistance !=-1 && currentDistance <= detectionDistance && !startingActivity.isSettingsActive && !loginActivity.isLoginActivityActive) {
+                        if (currentDistance != -1 && currentDistance <= detectionDistance && !startingActivity.isSettingsActive && !loginActivity.isLoginActivityActive) {
                             onDetection();
                         } else Log.i(TAG, "I am too far ! or Settings is Active");
                     }
@@ -151,7 +141,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     public void generateDoBeaconArrayFiltered(Collection<Beacon> beacons){
         Iterator iterator = beacons.iterator();
-        Beacon firstBeacon;
         doBeaconArray.clear();
         for (int i=0; i<beacons.size();i++) {
             firstBeacon = (Beacon) iterator.next();
@@ -172,30 +161,26 @@ public class presenceApp extends Application implements BootstrapNotifier {
     }
 
     public void onDetection(){
-        final Intent intent = new Intent(this, popupActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Log.i(TAG, "I am in range !");
-        triggerNotification("Hey! Are you going in or out?");
-        //wakeScreen();
+        updatePosition();
+        triggerNotification(currentLocation + " noticed you");
+    }
+
+    private void updatePosition(){
         try {
             if (isLoggedIn && !closestDoBeacon.equals(currentLocation)){
                 ra.getStandByApi().setLocationPresenceManually(true, closestDoBeacon);
                 currentLocation=closestDoBeacon;
-        }
+            }
             else
                 login();
         }catch (Exception e) {
             e.printStackTrace();
         }
-//        startActivity(intent);
-//        try {
-//            beaconManager.stopRangingBeaconsInRegion(noFilterRegion);
-//        } catch (RemoteException e) {
-//        }
     }
 
     private void triggerNotification(String s) {
-        final Intent intent = new Intent(this, popupActivity.class);
+        final Intent intent = new Intent(this, startingActivity.class);
         final PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
         CharSequence message = s;
         NotificationManager notificationManager;
@@ -212,6 +197,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
         notificationManager.notify(1010, notification);
     }
 
+    //not used anymore
     private void wakeScreen() {
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         // isScreenOn() is deprecated for API >=20
@@ -233,20 +219,16 @@ public class presenceApp extends Application implements BootstrapNotifier {
     private void readPersistentStorage() {
         SharedPreferences settings = getSharedPreferences(SETTING_FILE, 0);
         detectionDistance=settings.getFloat("detectionDistanceKey", detectionDistanceDefault);
+        username= settings.getString("usernameKey", usernameDefault);
+        password= settings.getString("passwordKey", passwordDefault);
         int doBeaconListSize =settings.getInt("doBeaconListSize",0);
         Log.i(TAG,"i= "+ String.valueOf(doBeaconListSize));
         if(doBeaconListSize>0) {
             for (int i = 0; i < settings.getInt("doBeaconListSize", 1); i++) {
-                beaconUUIDArray.add(Identifier.parse(settings.getString("beaconUUIDKey" + String.valueOf(i), beaconUUIDDefault)));
-                beaconMajorArray.add(Identifier.parse(settings.getString("beaconMajorKey" + String.valueOf(i), beaconMajorDefault)));
-                beaconMinorArray.add(Identifier.parse(settings.getString("beaconMinorKey" + String.valueOf(i), beaconMinorDefault)));
-                beaconNameArray.add(settings.getString("beaconNameKey" + String.valueOf(i), beaconNameDefault));
                 beaconAddressArray.add(settings.getString("beaconAdressKey" + String.valueOf(i), beaconAddressDefault));
-                Log.i(TAG,"added beacon " + beaconNameArray.get(i) + "with adress " + beaconAddressArray.get(i));
+                Log.i(TAG,"added beacon with adress " + beaconAddressArray.get(i));
             }
         }
-        username= settings.getString("usernameKey", usernameDefault);
-        password= settings.getString("passwordKey", passwordDefault);
     }
 
     private void login(){

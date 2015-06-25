@@ -1,5 +1,6 @@
 package nl.dobots.presence;
 
+
 import java.util.ArrayList;
 
 import android.app.Activity;
@@ -20,25 +21,26 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import org.altbeacon.beacon.Beacon;
-import org.altbeacon.beacon.BeaconManager;
-import org.altbeacon.beacon.Region;
 
 /**
  * Created by christian Haas-Frangi on 18/06/15.
  */
 public class scanActivity extends Activity implements OnItemClickListener {
+
     private ListView doBeaconListView;
     private TextView doBeaconNameView;
     private TextView doBeaconUUIDView;
     private TextView doBeaconMajorView;
+    public  ProgressDialog progress;
+    public CustomAdapter customAdapter;
+
     protected static final String TAG = scanActivity.class.getCanonicalName();
-    private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
     final Handler handler = new Handler();
     static public boolean isScanActivityActive;
     private boolean isLoadingOn;
-    public  ProgressDialog progress;
-    public CustomAdapter customAdapter;
+
     public ArrayList<Beacon> doBeaconUnfilteredArray = new ArrayList<Beacon>();
+    public ArrayList<Beacon> doBeaconSelectedArray= new ArrayList<Beacon>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -46,6 +48,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
         setContentView(R.layout.custom_listview);
         isScanActivityActive=true;
         doBeaconUnfilteredArray=presenceApp.doBeaconArray;
+
         //show a progress message
         progress = new ProgressDialog(this);
         progress.setTitle("Scanning");
@@ -85,8 +88,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
         super.onDestroy();
         isScanActivityActive=false;
         writePersistentSettings();
-        final Intent restartAppIntent = new Intent (this, presenceApp.class);
-        this.startService(restartAppIntent);
+        presenceApp.doBeaconArray=doBeaconSelectedArray;
     }
 
     @Override
@@ -112,8 +114,6 @@ public class scanActivity extends Activity implements OnItemClickListener {
         // How many items are in the data set represented by this Adapter.
         @Override
         public int getCount() {
-            Log.i(TAG, "*** 2 getCount method");
-            Log.i(TAG, String.valueOf(innerClassdoBeaconUnfilteredArray.size()));
             return innerClassdoBeaconUnfilteredArray.size();
         }
 
@@ -127,7 +127,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
 
         @Override
         public long getItemId(int position) {
-            return position;
+            return presenceApp.beaconAddressArray.indexOf(innerClassdoBeaconUnfilteredArray.get(position));
         }
 
         public void updateResults(ArrayList<Beacon> results) {
@@ -157,12 +157,20 @@ public class scanActivity extends Activity implements OnItemClickListener {
             if (!innerClassdoBeaconUnfilteredArray.isEmpty()) {
                 doBeaconNameView.setText(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothName());
                 doBeaconUUIDView.setText("UUID: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId1())
-                +"\nAddress: "+ innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress());
+                        + "\nAddress: " + innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress());
                 doBeaconMajorView.setText("Major: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId2())
                         + "           Minor: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId3())
                         + "\nDistance: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getDistance()) + " m");
-                if(presenceApp.beaconAddressArray.contains(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress()))
+                if(presenceApp.beaconAddressArray.contains(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress())) {
                     convertView.setBackgroundColor(0x660000FF);
+                    if(!doBeaconSelectedArray.contains(doBeaconUnfilteredArray.get(position))) doBeaconSelectedArray.add(doBeaconUnfilteredArray.get(position));
+                    Log.i(TAG,"<--added beacon "+ doBeaconUnfilteredArray.get(position).getBluetoothName());
+                }
+                else {
+                    convertView.setBackgroundColor(0x00000000);
+                    if(doBeaconSelectedArray.contains(doBeaconUnfilteredArray.get(position)))doBeaconSelectedArray.remove(doBeaconUnfilteredArray.get(position));
+                    Log.i(TAG, "-->remove beacon " + doBeaconUnfilteredArray.get(position).getBluetoothName());
+                }
             }
 
             return convertView;
@@ -171,24 +179,16 @@ public class scanActivity extends Activity implements OnItemClickListener {
 
     @Override
     public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
-        if(!presenceApp.beaconUUIDArray.contains(doBeaconUnfilteredArray.get(arg2).getId1())) {
-            presenceApp.beaconUUIDArray.add(doBeaconUnfilteredArray.get(arg2).getId1());
-            presenceApp.beaconMajorArray.add(doBeaconUnfilteredArray.get(arg2).getId2());
-            presenceApp.beaconMinorArray.add(doBeaconUnfilteredArray.get(arg2).getId3());
-            presenceApp.beaconNameArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothName());
+        Log.i(TAG,"clicked on item" + arg2);
+        if(!presenceApp.beaconAddressArray.contains(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress())) {
             presenceApp.beaconAddressArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
-            presenceApp.currentDistance= (float) doBeaconUnfilteredArray.get(arg2).getDistance();
             arg1.setBackgroundColor(0x660000FF);
         }
         else{
-            presenceApp.beaconUUIDArray.remove(doBeaconUnfilteredArray.get(arg2).getId1());
-            presenceApp.beaconMajorArray.remove(doBeaconUnfilteredArray.get(arg2).getId2());
-            presenceApp.beaconMinorArray.remove(doBeaconUnfilteredArray.get(arg2).getId3());
-            presenceApp.beaconNameArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothName());
+            doBeaconSelectedArray.remove(doBeaconUnfilteredArray.get(arg2));
             presenceApp.beaconAddressArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
             arg1.setBackgroundColor(0x00000000);
         }
-
     }
 
     public void initButtons(){
@@ -208,24 +208,19 @@ public class scanActivity extends Activity implements OnItemClickListener {
     private void writePersistentSettings() {
         //store the settings in the Shared Preference file
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        presenceApp.password=settings.getString("passwordKey", presenceApp.passwordDefault);
+        presenceApp.username=settings.getString("usernameKey", presenceApp.usernameDefault);
+        presenceApp.detectionDistance=settings.getFloat("detectionDistanceKey",presenceApp.detectionDistanceDefault);
         SharedPreferences.Editor editor = settings.edit();
-        for (int i=0;i<settings.getInt("doBeaconListSize", 0);i++)
+        editor.clear();
+        editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
+        editor.putString("usernameKey", presenceApp.username);
+        editor.putString("passwordKey",presenceApp.password);
+        editor.putInt("doBeaconListSize", doBeaconSelectedArray.size());
+        Log.i(TAG,"saved the "+ doBeaconSelectedArray.size()+" beacons selected");
+        for (int i=0;i<doBeaconSelectedArray.size();i++)
         {
-            editor.remove("beaconUUIDKey" + String.valueOf(i));
-            editor.remove("beaconMajorKey" + String.valueOf(i));
-            editor.remove("beaconMinorKey" + String.valueOf(i));
-            editor.remove("beaconNameKey" + String.valueOf(i));
-            editor.remove("beaconAdressKey" + String.valueOf(i));
-        }
-        editor.remove("doBeaconListSize");
-        editor.putInt("doBeaconListSize", presenceApp.beaconAddressArray.size());
-        for (int i=0;i<presenceApp.beaconAddressArray.size();i++)
-        {
-            editor.putString("beaconUUIDKey" + String.valueOf(i), presenceApp.beaconUUIDArray.get(i).toString());
-            editor.putString("beaconMajorKey" + String.valueOf(i), presenceApp.beaconMajorArray.get(i).toString());
-            editor.putString("beaconMinorKey" + String.valueOf(i), presenceApp.beaconMinorArray.get(i).toString());
-            editor.putString("beaconNameKey" + String.valueOf(i), presenceApp.beaconNameArray.get(i));
-            editor.putString("beaconAdressKey"+ String.valueOf(i),presenceApp.beaconAddressArray.get(i));
+            editor.putString("beaconAdressKey"+ String.valueOf(i),doBeaconSelectedArray.get(i).getBluetoothAddress());
         }
         // Commit the edits!
         editor.commit();

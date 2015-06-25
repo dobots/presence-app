@@ -13,7 +13,7 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.view.View;
 import android.widget.Toast;
-import nl.dobots.presence.rest.RestApi;
+
 
 /**
  * Created by christian on 23/06/15.
@@ -23,8 +23,6 @@ public class loginActivity extends Activity {
     private Button loginButton;
     private EditText fieldUsername;
     private EditText fieldPassword;
-    private Spinner fieldServer;
-    private ViewGroup contentContainer;
     private String password;
 
     public static String TAG = loginActivity.class.getCanonicalName();
@@ -48,7 +46,6 @@ public class loginActivity extends Activity {
         loginButton = (Button) findViewById(R.id.btn_login);
         fieldUsername = (EditText) findViewById(R.id.input_username);
         fieldPassword = (EditText) findViewById(R.id.input_password);
-        fieldServer = (Spinner) findViewById(R.id.backend_servers);
 
         // Prefill username/password fields
         fieldUsername.setText(presenceApp.username);
@@ -71,13 +68,13 @@ public class loginActivity extends Activity {
                 System.err.println("[onClick] Login");
 
                 presenceApp.username = fieldUsername.getText().toString().toLowerCase();
-                presenceApp.password = fieldPassword.getText().toString();
+                password = fieldPassword.getText().toString();
 
                 // If the password is 32 characters long; consider it being the md5 hash and use that one directly instead
-                if(presenceApp.password.length() == 32)
-                    password = presenceApp.password;
+                if(password.length() == 32)
+                    presenceApp.password = password;
                 else
-                    password = Cryptography.md5(presenceApp.password);
+                    presenceApp.password = Cryptography.md5(password);
 
                 Log.w(TAG, "Login - Using REST endpoint ");
 
@@ -89,10 +86,11 @@ public class loginActivity extends Activity {
 
                     // Login request
                     try {
-                        presenceApp.ra.login(presenceApp.username, password, presenceApp.server, presenceApp.closestDoBeacon);
+                        presenceApp.ra.login(presenceApp.username, presenceApp.password, presenceApp.server, presenceApp.closestDoBeacon);
                         if(presenceApp.ra.getStandByApi().setLocationPresenceManually(true, presenceApp.closestDoBeacon).get(0)) {
                             presenceApp.isLoggedIn=true;
                             hideKeyboard();
+                            Toast.makeText(getApplicationContext(),"Welcome " + presenceApp.username+ " !",Toast.LENGTH_SHORT).show();
                             finish();
                         }
                         else
@@ -111,7 +109,8 @@ public class loginActivity extends Activity {
     public void onDestroy(){
         super.onDestroy();
         isLoginActivityActive = false;
-        writePersistentSettings();
+        if (presenceApp.isLoggedIn)
+            writePersistentSettings();
     }
 
     @Override
@@ -133,7 +132,7 @@ public class loginActivity extends Activity {
         editor.remove("usernameKey");
         editor.remove("passwordKey");
         editor.putString("usernameKey",presenceApp.username);
-        editor.putString("passwordKey", password);
+        editor.putString("passwordKey", presenceApp.password);
         // Commit the edits!
         editor.commit();
     }

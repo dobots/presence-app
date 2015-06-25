@@ -64,15 +64,6 @@
                         android:layout_marginTop="-1dip"
                         /> <!-- -1dip margin top to overlay the borders/strokes -->
 
-                    <Spinner
-                        android:id="@+id/backend_servers"
-                        android:layout_height="wrap_content"
-                        android:layout_width="match_parent"
-                        android:padding="6dp"
-                        android:hint="@string/login_system"
-                        android:layout_marginTop="-1dip"
-                        /> <!-- -1dip margin top to overlay the borders/strokes -->
-
                     <Button
                         android:id="@+id/btn_login"
                         android:layout_height="@dimen/button_height"
