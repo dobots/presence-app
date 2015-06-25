@@ -3,7 +3,6 @@ package nl.dobots.presence;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -16,9 +15,6 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import org.altbeacon.beacon.BeaconManager;
-
-import java.io.FileOutputStream;
-import java.io.ObjectOutputStream;
 
 /**
  * Created by christian on 15/06/15.
