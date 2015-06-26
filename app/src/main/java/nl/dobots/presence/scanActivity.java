@@ -209,12 +209,14 @@ public class scanActivity extends Activity implements OnItemClickListener {
         SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
         presenceApp.password=settings.getString("passwordKey", presenceApp.passwordDefault);
         presenceApp.username=settings.getString("usernameKey", presenceApp.usernameDefault);
+        presenceApp.server=settings.getString("serverKey", presenceApp.serverDefault);
         presenceApp.detectionDistance=settings.getFloat("detectionDistanceKey",presenceApp.detectionDistanceDefault);
         SharedPreferences.Editor editor = settings.edit();
         editor.clear();
         editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
         editor.putString("usernameKey", presenceApp.username);
         editor.putString("passwordKey",presenceApp.password);
+        editor.putString("serverKey",presenceApp.server);
         editor.putInt("doBeaconListSize", doBeaconSelectedArray.size());
         Log.i(TAG,"saved the "+ doBeaconSelectedArray.size()+" beacons selected");
         for (int i=0;i<doBeaconSelectedArray.size();i++)

@@ -57,6 +57,16 @@
                         android:layout_marginTop="-1dip"
                         />
 
+                    <EditText
+                        android:id="@+id/input_server"
+                        android:layout_height="wrap_content"
+                        android:layout_width="match_parent"
+                        android:padding="12dp"
+                        android:hint="@string/login_server"
+                        android:inputType="textEmailAddress"
+                        android:singleLine="true"
+                        android:layout_marginTop="-1dip"
+                        />
                     <Button
                         android:id="@+id/btn_login"
                         android:layout_height="@dimen/button_height"

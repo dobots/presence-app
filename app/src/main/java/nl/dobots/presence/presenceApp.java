@@ -38,12 +38,14 @@ public class presenceApp extends Application implements BootstrapNotifier {
     public static ArrayList<String> beaconAddressArray= new ArrayList<String>();
     public static String username;
     public static String password;
+    public static String server; //backend
     public static final String SETTING_FILE="presenceSettingFile";
 
     //Default values for first loading ever
     final public static float detectionDistanceDefault = 1;
     final public static String usernameDefault="";
     final public static String passwordDefault="";
+    final public static String serverDefault="http://dev.ask-cs.com";
     final public static String beaconAddressDefault=null;
 
     private static final String TAG = presenceApp.class.getCanonicalName();
@@ -67,7 +69,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
 
     // Make sure to keep a reference to the rest API object to make sure it's not garbage collected
     public static final RestApi ra = RestApi.getInstance();
-    public static String server = "http://dev.ask-cs.com"; //backend
 
     @Override
     public void onCreate() {
@@ -253,6 +254,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
         detectionDistance=settings.getFloat("detectionDistanceKey", detectionDistanceDefault);
         username= settings.getString("usernameKey", usernameDefault);
         password= settings.getString("passwordKey", passwordDefault);
+        server= settings.getString("serverKey",serverDefault);
         int doBeaconListSize =settings.getInt("doBeaconListSize",0);
         Log.i(TAG, "i= " + String.valueOf(doBeaconListSize));
         if(doBeaconListSize>0) {

@@ -21,6 +21,7 @@ public class loginActivity extends Activity {
     private Button loginButton;
     private EditText fieldUsername;
     private EditText fieldPassword;
+    private EditText fieldServer;
     private String password;
 
     public static String TAG = loginActivity.class.getCanonicalName();
@@ -44,10 +45,12 @@ public class loginActivity extends Activity {
         loginButton = (Button) findViewById(R.id.btn_login);
         fieldUsername = (EditText) findViewById(R.id.input_username);
         fieldPassword = (EditText) findViewById(R.id.input_password);
+        fieldServer = (EditText) findViewById(R.id.input_server);
 
         // Prefill username/password fields
         fieldUsername.setText(presenceApp.username);
         fieldPassword.setText(presenceApp.password); // Not the MD5 hash, but the original password
+        fieldServer.setText(presenceApp.server);
 
         // Give focus to the password form field when we've preset the username
         if (!presenceApp.username.equals(presenceApp.usernameDefault) ) {
@@ -129,8 +132,10 @@ public class loginActivity extends Activity {
         SharedPreferences.Editor editor = settings.edit();
         editor.remove("usernameKey");
         editor.remove("passwordKey");
-        editor.putString("usernameKey",presenceApp.username);
+        editor.remove("serverKey");
+        editor.putString("usernameKey", presenceApp.username);
         editor.putString("passwordKey", presenceApp.password);
+        editor.putString("serverKey",presenceApp.server);
         // Commit the edits!
         editor.commit();
     }
