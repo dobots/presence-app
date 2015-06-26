@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/chaasfr/presence-app.svg)](https://travis-ci.org/chaasfr/presence-app)
+
 # Presence App
 
 ##What it does
