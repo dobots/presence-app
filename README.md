@@ -17,8 +17,11 @@ You can find the apk here: http://christian.haas-frangi.perso.centrale-marseille
 ##Installation
 ###Third Party libraries used
 Altbeacon: http://altbeacon.org/
+
 Okhttp: http://square.github.io/okhttp/
+
 retrofit: http://square.github.io/retrofit/
+
 fasterxml jackson datatype: https://github.com/FasterXML/jackson-datatype-joda
 
 ###Using Android Studio and Gradle
