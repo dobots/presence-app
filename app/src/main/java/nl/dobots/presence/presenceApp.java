@@ -59,6 +59,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
     public static Beacon closestDoBeacon;
     public static String initClosestDoBeaconAddress="FI:RS:TA:DD:RE:SS";
     public static String initClosestDoBeaconName="just came in";
+    public boolean closestDoBeaconExists;
 
     public static float currentDistance=-1;
     public static boolean isLoggedIn;
@@ -130,28 +131,42 @@ public class presenceApp extends Application implements BootstrapNotifier {
             if(closestDoBeacon.getBluetoothAddress().equals(initClosestDoBeaconAddress)){
                 closestDoBeacon= doBeaconArray.get(0);
             }
-            //update distance last closest doBeacon
-            boolean closestDoBeaconExists=false;
+            //update distance of the last closest doBeacon
+            closestDoBeaconExists=false;
             for (int i=0; i<doBeaconArray.size();i++){
                 if(doBeaconArray.get(i).equals(closestDoBeacon)) {
-                    closestDoBeacon = doBeaconArray.get(i);
+                    closestDoBeacon = doBeaconArray.get(i); // no it's not useless, it updates the Rssi !
                     closestDoBeaconExists=true;
                 }
             }
-            if(!closestDoBeaconExists)
-                closestDoBeacon=doBeaconArray.get(0);
-
-            //check if any doBeacon is closer
-            for (int i=0; i< doBeaconArray.size();i++) {
-                Log.i(TAG,"I am at "+ String.valueOf(doBeaconArray.get(i).getDistance()) +"m "
-                        +"which corresponds to " + String.valueOf(doBeaconArray.get(i).getRssi())+"dBm from "
-                        + doBeaconArray.get(i).getBluetoothName() + " " + doBeaconArray.get(i).getBluetoothAddress());
-                if (doBeaconArray.get(i).getDistance() < closestDoBeacon.getDistance()) {
-                    closestDoBeacon = doBeaconArray.get(i);
-                    Log.i(TAG,"updating distance from"+ closestDoBeacon.getBluetoothName() + " at "+ closestDoBeacon.getDistance()+"m.");
-                }
+            //if the closest beacon disappeared, get the new closest one
+            if(!closestDoBeaconExists) {
+                Beacon closestDoBeacon= new Beacon.Builder()
+                        .setBluetoothName("dummy")
+                        .setBluetoothAddress("RA:ND:OM:AD:DR:ES")
+                        .setRssi(-2000)
+                        .build();;
+                for (int i = 0; i < doBeaconArray.size(); i++)
+                    if (beaconAddressArray.contains(doBeaconArray.get(i).getBluetoothAddress()) && doBeaconArray.get(i).getDistance() < closestDoBeacon.getDistance())
+                        closestDoBeacon = doBeaconArray.get(i);
             }
-            Log.i(TAG, "The first beacon " + closestDoBeacon.getBluetoothName() + " is about " + closestDoBeacon.getDistance() + " meters away.");
+            //otherwise check if any doBeacon is closer
+            else {
+                for (int i = 0; i < doBeaconArray.size(); i++) {
+                    Log.i(TAG, "I am at " + String.valueOf(doBeaconArray.get(i).getDistance()) + "m "
+                            + "which corresponds to " + String.valueOf(doBeaconArray.get(i).getRssi()) + "dBm from "
+                            + doBeaconArray.get(i).getBluetoothName() + " " + doBeaconArray.get(i).getBluetoothAddress());
+                    if (doBeaconArray.get(i).getDistance() < closestDoBeacon.getDistance()) {
+                        closestDoBeacon = doBeaconArray.get(i);
+                        Log.i(TAG, "updating distance from" + closestDoBeacon.getBluetoothName() + " at " + closestDoBeacon.getDistance() + "m.");
+                    }
+                }
+                Log.i(TAG, "The first beacon " + closestDoBeacon.getBluetoothName() + " is about " + closestDoBeacon.getDistance() + " meters away.");
+            }
+        }
+        else { // if none of the selected doBeacons are in range, it means we left the area
+            logout();
+            buildClosestBeacon();
         }
     }
 
@@ -177,14 +192,13 @@ public class presenceApp extends Application implements BootstrapNotifier {
     }
 
     public void onDetection(){
-        Log.i(TAG, "I am in range !");
+        Log.i(TAG, "I am in range of " + closestDoBeacon.getBluetoothName()+" !");
         updatePosition();
         triggerNotification(currentLocation + " noticed you");
     }
 
     private void updatePosition(){
         try {
-
             //we only send the new position if it differs from the old one, to avoid surcharging the server
             if (isLoggedIn && !closestDoBeacon.getBluetoothName().equals(currentLocation)){
                 ra.getStandByApi().setLocationPresenceManually(true, closestDoBeacon.getBluetoothName());
@@ -261,6 +275,13 @@ public class presenceApp extends Application implements BootstrapNotifier {
         }
     }
 
+    private void logout(){
+        if(isLoggedIn){
+            ra.logout();
+            isLoggedIn=false;
+        }
+    }
+
     @Override
     public void didDetermineStateForRegion(int arg0, Region arg1) {
         // Don't care
@@ -269,6 +290,6 @@ public class presenceApp extends Application implements BootstrapNotifier {
     @Override
     public void didExitRegion(Region arg0) {
         //we can do something here like logout or set absent but I don't know the function for
-        ra.getStandByApi().setLocationPresenceManually(true,"somewhere in the wild");
+        logout();
     }
 }
