@@ -6,6 +6,9 @@ android:
  - extra-android-support
  - extra-android-m2repository
  - android-22
+  lintOptions {
+      abortOnError false
+  }
 
 script:
 - ./gradlew clean assemble check
