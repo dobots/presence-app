@@ -4,13 +4,19 @@ import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.Vibrator;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.altbeacon.beacon.Beacon;
@@ -21,17 +27,25 @@ import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
 import org.altbeacon.beacon.startup.BootstrapNotifier;
 import org.altbeacon.beacon.startup.RegionBootstrap;
 
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 
 import nl.dobots.presence.rest.RestApi;
 
 /**
  * Created by christian Haas-Frangi on 15/06/15.
  */
-public class presenceApp extends Application implements BootstrapNotifier {
+public class PresenceApp extends Application implements BootstrapNotifier {
+
+    public static final int PRESENCE_NOTIFICATION_ID = 1010;
+
+    public static final String EXTRAS_BEACON_NAME = "nl.dobots.presence.BEACON_NAME";
+    public static final String PRESENCE_UPDATE_PRESENT = "nl.dobots.presence.PRESENT";
+    public static final String PRESENCE_UPDATE_ABSENT = "nl.dobots.presence.ABSENT";
+
+    public static final long TIMEOUT = 30000; // timeout in ms before the next presence update notification will trigger
 
     //stored parameters. We can't store an ArrayList<Beacon> so we go through this complicated stuff
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.
@@ -48,7 +62,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
     final public static String serverDefault="http://dev.ask-cs.com";
     final public static String beaconAddressDefault=null;
 
-    private static final String TAG = presenceApp.class.getCanonicalName();
+    private static final String TAG = PresenceApp.class.getCanonicalName();
     public static RegionBootstrap regionBootstrap;
     private BackgroundPowerSaver backgroundPowerSaver;
     private BeaconManager beaconManager;
@@ -63,16 +77,29 @@ public class presenceApp extends Application implements BootstrapNotifier {
     public static String initClosestDoBeaconName="just came in";
     public boolean closestDoBeaconExists;
 
-    public static float currentDistance=-1;
-    public static boolean isLoggedIn;
-    public String currentLocation;
+    //    public static float currentDistance=-1;
+    private static boolean isLoggedIn;
+
+    private String currentLocation;
+    private boolean currentPresence = false;
+
+    private boolean updatingPresence = false;
 
     // Make sure to keep a reference to the rest API object to make sure it's not garbage collected
     public static final RestApi ra = RestApi.getInstance();
 
+    private Handler mNetworkHandler;
+
+    public static PresenceApp INSTANCE;
+
+    private NotificationManager notificationManager;
+
     @Override
     public void onCreate() {
         super.onCreate();
+
+        INSTANCE = this;
+
         readPersistentStorage(); // retrieve values from previous run
         buildClosestBeacon();
         Log.d(TAG, "App started up");
@@ -84,6 +111,17 @@ public class presenceApp extends Application implements BootstrapNotifier {
         //Start the sticky service beaconService, which scans permanently for beacons, even when the app is closed.
         final Intent beaconServiceIntent = new Intent (this, beaconService.class);
         this.startService(beaconServiceIntent);
+
+        notificationManager = (NotificationManager) getSystemService(this.NOTIFICATION_SERVICE);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(PRESENCE_UPDATE_PRESENT);
+        filter.addAction(PRESENCE_UPDATE_ABSENT);
+        registerReceiver(receiver, filter);
+
+        HandlerThread networkHandlerThread = new HandlerThread("NetworkHandlerThread");
+        networkHandlerThread.start();
+        mNetworkHandler = new Handler(networkHandlerThread.getLooper());
     }
 
     public static void buildClosestBeacon(){
@@ -96,7 +134,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
     @Override
     public void didEnterRegion(Region arg0) { //called when the DoBeacon is seen. Used by the RegionBootstrap to start the app
         Log.d(TAG, "Got a didEnterRegion call");
-        login();
+//        login();
         startTracking();
     }
 
@@ -113,7 +151,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
                             generateDoBeaconArrayFiltered(beacons);
                             updateRange();
                         }
-                        if (!closestDoBeacon.getBluetoothAddress().equals(initClosestDoBeaconAddress) && currentDistance <= detectionDistance && !startingActivity.isSettingsActive && !loginActivity.isLoginActivityActive) {
+                        if (!closestDoBeacon.getBluetoothAddress().equals(initClosestDoBeaconAddress) && closestDoBeacon.getDistance() <= detectionDistance && !loginActivity.isLoginActivityActive) {
                             onDetection();
                         } else Log.i(TAG, "I am too far ! or Settings is Active");
                     }
@@ -166,7 +204,7 @@ public class presenceApp extends Application implements BootstrapNotifier {
             }
         }
         else { // if none of the selected doBeacons are in range, it means we left the area
-            logout();
+//            logout();
             buildClosestBeacon();
         }
     }
@@ -192,43 +230,115 @@ public class presenceApp extends Application implements BootstrapNotifier {
         }
     }
 
+    long lastDetectionTime = 0;
+    long lastPresenceUpdateTime = 0;
+
     public void onDetection(){
-        Log.i(TAG, "I am in range of " + closestDoBeacon.getBluetoothName()+" !");
-        updatePosition();
-        triggerNotification(currentLocation + " noticed you");
+
+//        if (System.currentTimeMillis() - lastDetectionTime > TIMEOUT) {
+        if (!updatingPresence && System.currentTimeMillis() - lastPresenceUpdateTime > TIMEOUT) {
+            Log.i(TAG, "I am in range of " + closestDoBeacon.getBluetoothName() + " !");
+            triggerNotification(closestDoBeacon.getBluetoothName());
+//            lastDetectionTime = System.currentTimeMillis();
+            updatingPresence = true;
+            currentLocation = closestDoBeacon.getBluetoothName();
+        }
     }
 
-    private void updatePosition(){
+    public void updatePresence(final boolean present) {
+
+        // can't execute network operations in the main thread, so we have to delegate
+        // the call to the network handler
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            mNetworkHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                   updatePresence(present);
+                }
+            });
+            return;
+        }
+
         try {
             //we only send the new position if it differs from the old one, to avoid surcharging the server
-            if (isLoggedIn && !closestDoBeacon.getBluetoothName().equals(currentLocation)){
-                ra.getStandByApi().setLocationPresenceManually(true, closestDoBeacon.getBluetoothName());
-                currentLocation=closestDoBeacon.getBluetoothName();
-            }
-            else
+            if (!isLoggedIn()) {
                 login();
+            }
+            if (isLoggedIn() && (currentPresence != present)) {
+                ra.getStandByApi().setLocationPresenceManually(present, currentLocation);
+                currentPresence = present;
+                updatingPresence = false;
+                lastPresenceUpdateTime = System.currentTimeMillis();
+                notificationManager.cancel(PRESENCE_NOTIFICATION_ID);
+            }
+            else {
+                Log.d(TAG, "failed to log in");
+            }
         }catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void triggerNotification(String s) {
-        final Intent intent = new Intent(this, startingActivity.class);
-        final PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, 0);
-        CharSequence message = s;
-        NotificationManager notificationManager;
-        notificationManager = (NotificationManager) getSystemService(this.NOTIFICATION_SERVICE);
-        Notification notification = new Notification.Builder(this)
-                .setContentTitle("Presence")
-                .setContentText(message)
+    private void triggerNotification(String beaconName) {
+        final Intent intent = new Intent(this, popupActivity.class);
+        intent.putExtra(EXTRAS_BEACON_NAME, beaconName);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+                Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        final PendingIntent contentIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        CharSequence shortMessage = beaconName + " noticed you";
+        CharSequence longMessage = String.format("You walked past %s.\nAre you going in or out?", beaconName);
+
+        Intent presentIntent = new Intent(PRESENCE_UPDATE_PRESENT);
+        presentIntent.putExtra(EXTRAS_BEACON_NAME, beaconName);
+//        presentIntent.putExtra("nl.dobots.presence.NOTIFICATION_ANSWER", true);
+        PendingIntent piPresent = PendingIntent.getBroadcast(this, 0, presentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Intent absentIntent = new Intent(PRESENCE_UPDATE_ABSENT);
+        absentIntent.putExtra(EXTRAS_BEACON_NAME, beaconName);
+//        absentIntent.putExtra("nl.dobots.presence.NOTIFICATION_ANSWER", false);
+        PendingIntent piAbsent = PendingIntent.getBroadcast(this, 0, absentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentIntent(contentIntent)
+                .setContentTitle("Presence detected")
+                .setContentText(shortMessage)
                 .setDefaults(Notification.DEFAULT_SOUND)
-                .setLights(Color.BLUE, 500, 1000)
-                .setAutoCancel(true)
-                .build();
-        notificationManager.notify(1010, notification);
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(longMessage))
+                .addAction(android.R.drawable.ic_input_delete, "Going out", piAbsent)
+                .addAction(android.R.drawable.ic_input_add, "Coming in", piPresent)
+                .setContentIntent(contentIntent)
+                .setLights(Color.BLUE, 500, 1000);
+
+        notificationManager.notify(PRESENCE_NOTIFICATION_ID, builder.build());
     }
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, final Intent intent) {
+
+//            mNetworkHandler.post(new Runnable() {
+//                @Override
+//                public void run() {
+                    if (intent.getAction() == PRESENCE_UPDATE_PRESENT) {
+                        updatePresence(true);
+                    } else {
+                        updatePresence(false);
+                    }
+//                }
+//            });
+
+//            boolean present = intent.getBooleanExtra("nl.dobots.presence.NOTIFICATION_ANSWER", false);
+//            if (present) {
+//                Log.d(TAG, "present");
+//            } else {
+//                Log.d(TAG, "absent");
+//            }
+        }
+
+    };
 
     //not used anymore
     private void wakeScreen() {
@@ -266,11 +376,14 @@ public class presenceApp extends Application implements BootstrapNotifier {
     }
 
     private void login(){
-        if(!username.equals(usernameDefault) && !password.equals(passwordDefault) && !isLoggedIn) {
+        if(!username.equals(usernameDefault) && !password.equals(passwordDefault) && !isLoggedIn()) {
             try {
-                ra.login(presenceApp.username, presenceApp.password, server, closestDoBeacon.getBluetoothName());
-                if(ra.getStandByApi().setLocationPresenceManually(true, closestDoBeacon.getBluetoothName()).get(0))
-                    isLoggedIn=true;
+                ra.login(PresenceApp.username, PresenceApp.password, server, closestDoBeacon.getBluetoothName());
+                Map<String, Object> presence = ra.getStandByApi().getPresence(false);
+                if (presence != null) {
+                    setIsLoggedIn(true);
+                    currentPresence = (Boolean)presence.get("present");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -278,9 +391,9 @@ public class presenceApp extends Application implements BootstrapNotifier {
     }
 
     private void logout(){
-        if(isLoggedIn){
+        if(isLoggedIn()){
             ra.logout();
-            isLoggedIn=false;
+            setIsLoggedIn(false);
         }
     }
 
@@ -292,6 +405,15 @@ public class presenceApp extends Application implements BootstrapNotifier {
     @Override
     public void didExitRegion(Region arg0) {
         //we can do something here like logout or set absent but I don't know the function for
-        logout();
+//        logout();
     }
+
+    public static boolean isLoggedIn() {
+        return isLoggedIn;
+    }
+
+    public static void setIsLoggedIn(boolean isLoggedIn) {
+        PresenceApp.isLoggedIn = isLoggedIn;
+    }
+
 }

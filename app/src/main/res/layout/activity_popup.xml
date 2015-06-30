@@ -10,6 +10,7 @@
                 android:id="@+id/pre">
 
     <TextView
+        android:id="@+id/popupDescription"
         android:text="@string/IOquestion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

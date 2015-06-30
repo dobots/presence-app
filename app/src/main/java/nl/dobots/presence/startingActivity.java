@@ -42,7 +42,7 @@ public class startingActivity extends Activity {
         super.onDestroy();
         isSettingsActive=false;
         writePersistentSettings();
-        final Intent restartAppIntent = new Intent (this, presenceApp.class);
+        final Intent restartAppIntent = new Intent (this, PresenceApp.class);
         this.startService(restartAppIntent);
 
     }
@@ -88,19 +88,19 @@ public class startingActivity extends Activity {
 
     private void writePersistentSettings() {
         //store the settings in the Shared Preference file
-        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.remove("detectionDistanceKey");
-        editor.putFloat("detectionDistanceKey", presenceApp.detectionDistance);
+        editor.putFloat("detectionDistanceKey", PresenceApp.detectionDistance);
         editor.commit();
     }
 
     public void updateCurrentDistance(){
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistanceHint);
-        if (!presenceApp.beaconAddressArray.isEmpty() && presenceApp.beaconAddressArray.contains(presenceApp.closestDoBeacon.getBluetoothAddress()))
-            currentDistanceText.setText("closest DoBeacon " + presenceApp.closestDoBeacon.getBluetoothName() + ": " + String.valueOf(presenceApp.closestDoBeacon.getDistance()) + "m");
+        if (!PresenceApp.beaconAddressArray.isEmpty() && PresenceApp.beaconAddressArray.contains(PresenceApp.closestDoBeacon.getBluetoothAddress()))
+            currentDistanceText.setText("closest DoBeacon " + PresenceApp.closestDoBeacon.getBluetoothName() + ": " + String.valueOf(PresenceApp.closestDoBeacon.getDistance()) + "m");
         else
-            if(presenceApp.beaconAddressArray.isEmpty())
+            if(PresenceApp.beaconAddressArray.isEmpty())
                 currentDistanceText.setText("Please select your Dobeacons !");
             else
                 currentDistanceText.setText("loading...");
@@ -135,7 +135,7 @@ public class startingActivity extends Activity {
         });
         //start seekBar and distance related texts
         final TextView detectionDistanceText = (TextView) findViewById(R.id.detectionDistance);
-        detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
+        detectionDistanceText.setText(String.valueOf(PresenceApp.detectionDistance) + "m");
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -144,13 +144,13 @@ public class startingActivity extends Activity {
             }
         }, 1000);
         SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
-        distanceBar.setProgress((int)presenceApp.detectionDistance*5);
+        distanceBar.setProgress((int) PresenceApp.detectionDistance*5);
         distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int progress = 0;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                presenceApp.detectionDistance= (float) ( progress / 5.0);
-                detectionDistanceText.setText(String.valueOf(presenceApp.detectionDistance) + "m");
+                PresenceApp.detectionDistance= (float) ( progress / 5.0);
+                detectionDistanceText.setText(String.valueOf(PresenceApp.detectionDistance) + "m");
             }
 
             @Override
@@ -180,7 +180,7 @@ public class startingActivity extends Activity {
     }
 
     private void killApp(){
-        presenceApp.regionBootstrap.disable();
+        PresenceApp.regionBootstrap.disable();
         final Intent beaconServiceIntent = new Intent(this, beaconService.class);
         this.stopService(beaconServiceIntent);
         finish();
@@ -188,14 +188,14 @@ public class startingActivity extends Activity {
     }
 
     private void clearSettings(){
-        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
-        presenceApp.buildClosestBeacon();
-        presenceApp.doBeaconArray.clear();
-        presenceApp.beaconAddressArray.clear();
-        presenceApp.password=presenceApp.passwordDefault;
-        presenceApp.username=presenceApp.usernameDefault;
-        presenceApp.detectionDistance=presenceApp.detectionDistanceDefault;
+        PresenceApp.buildClosestBeacon();
+        PresenceApp.doBeaconArray.clear();
+        PresenceApp.beaconAddressArray.clear();
+        PresenceApp.password= PresenceApp.passwordDefault;
+        PresenceApp.username= PresenceApp.usernameDefault;
+        PresenceApp.detectionDistance= PresenceApp.detectionDistanceDefault;
         initUI();
     }
 

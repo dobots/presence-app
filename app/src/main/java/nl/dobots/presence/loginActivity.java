@@ -48,12 +48,12 @@ public class loginActivity extends Activity {
         fieldServer = (EditText) findViewById(R.id.input_server);
 
         // Prefill username/password fields
-        fieldUsername.setText(presenceApp.username);
-        fieldPassword.setText(presenceApp.password); // Not the MD5 hash, but the original password
-        fieldServer.setText(presenceApp.server);
+        fieldUsername.setText(PresenceApp.username);
+        fieldPassword.setText(PresenceApp.password); // Not the MD5 hash, but the original password
+        fieldServer.setText(PresenceApp.server);
 
         // Give focus to the password form field when we've preset the username
-        if (!presenceApp.username.equals(presenceApp.usernameDefault) ) {
+        if (!PresenceApp.username.equals(PresenceApp.usernameDefault) ) {
             fieldPassword.requestFocus();
         }
 
@@ -68,18 +68,18 @@ public class loginActivity extends Activity {
 
                 System.err.println("[onClick] Login");
 
-                presenceApp.username = fieldUsername.getText().toString().toLowerCase();
+                PresenceApp.username = fieldUsername.getText().toString().toLowerCase();
                 password = fieldPassword.getText().toString();
 
                 // If the password is 32 characters long; consider it being the md5 hash and use that one directly instead
                 if(password.length() == 32)
-                    presenceApp.password = password;
+                    PresenceApp.password = password;
                 else
-                    presenceApp.password = Cryptography.md5(password);
+                    PresenceApp.password = Cryptography.md5(password);
 
                 Log.w(TAG, "Login - Using REST endpoint ");
 
-                if (presenceApp.username.equals("") || presenceApp.password.equals("")) {
+                if (PresenceApp.username.equals("") || PresenceApp.password.equals("")) {
                     Log.w(TAG, "Failed - No username and/or password given via the login form");
                     Toast.makeText(getApplicationContext(), "Please fill in your username and password.", Toast.LENGTH_SHORT).show();
                 }
@@ -87,11 +87,11 @@ public class loginActivity extends Activity {
 
                     // Login request
                     try {
-                        presenceApp.ra.login(presenceApp.username, presenceApp.password, presenceApp.server, presenceApp.closestDoBeacon.getBluetoothName());
-                        if(presenceApp.ra.getStandByApi().setLocationPresenceManually(true, presenceApp.closestDoBeacon.getBluetoothName()).get(0)) {
-                            presenceApp.isLoggedIn=true;
+                        PresenceApp.ra.login(PresenceApp.username, PresenceApp.password, PresenceApp.server, PresenceApp.closestDoBeacon.getBluetoothName());
+                        if(PresenceApp.ra.getStandByApi().setLocationPresenceManually(true, PresenceApp.closestDoBeacon.getBluetoothName()).get(0)) {
+                            PresenceApp.setIsLoggedIn(true);
                             hideKeyboard();
-                            Toast.makeText(getApplicationContext(),"Welcome " + presenceApp.username+ " !",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(),"Welcome " + PresenceApp.username+ " !",Toast.LENGTH_SHORT).show();
                             finish();
                         }
                         else
@@ -110,7 +110,7 @@ public class loginActivity extends Activity {
     public void onDestroy(){
         super.onDestroy();
         isLoginActivityActive = false;
-        if (presenceApp.isLoggedIn)
+        if (PresenceApp.isLoggedIn())
             writePersistentSettings();
     }
 
@@ -128,14 +128,14 @@ public class loginActivity extends Activity {
 
     private void writePersistentSettings() {
         //store the settings in the Shared Preference file
-        SharedPreferences settings = getSharedPreferences(presenceApp.SETTING_FILE, 0);
+        SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.remove("usernameKey");
         editor.remove("passwordKey");
         editor.remove("serverKey");
-        editor.putString("usernameKey", presenceApp.username);
-        editor.putString("passwordKey", presenceApp.password);
-        editor.putString("serverKey",presenceApp.server);
+        editor.putString("usernameKey", PresenceApp.username);
+        editor.putString("passwordKey", PresenceApp.password);
+        editor.putString("serverKey", PresenceApp.server);
         // Commit the edits!
         editor.commit();
     }
