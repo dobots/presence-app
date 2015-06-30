@@ -31,7 +31,7 @@ public class startingActivity extends Activity {
         setContentView(R.layout.activity_starting);
         isSettingsActive = true;
         //make sure the user's phone is BLE compatible and has BLE enabled. Offers to turn it on otherwise.
-        verifyBluetooth();
+//        verifyBluetooth();
 
         initUI();
 

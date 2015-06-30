@@ -8,6 +8,7 @@ import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.RemoteException;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import org.altbeacon.beacon.Beacon;
+import org.altbeacon.beacon.BeaconManager;
 
 /**
  * Created by christian Haas-Frangi on 18/06/15.
@@ -48,6 +50,16 @@ public class scanActivity extends Activity implements OnItemClickListener {
         isScanActivityActive=true;
         doBeaconUnfilteredArray= PresenceApp.doBeaconArray;
 
+        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+        try {
+            beaconManager.setBackgroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
+            beaconManager.setForegroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
+            beaconManager.updateScanPeriods();
+        }
+        catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        
         //show a progress message
         progress = new ProgressDialog(this);
         progress.setTitle("Scanning");
@@ -88,6 +100,16 @@ public class scanActivity extends Activity implements OnItemClickListener {
         isScanActivityActive=false;
         writePersistentSettings();
         PresenceApp.doBeaconArray=doBeaconSelectedArray;
+
+        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+        try {
+            beaconManager.setBackgroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
+            beaconManager.setForegroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
+            beaconManager.updateScanPeriods();
+        }
+        catch (RemoteException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

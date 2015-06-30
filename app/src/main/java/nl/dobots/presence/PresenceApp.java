@@ -46,6 +46,8 @@ public class PresenceApp extends Application implements BootstrapNotifier {
     public static final String PRESENCE_UPDATE_ABSENT = "nl.dobots.presence.ABSENT";
 
     public static final long TIMEOUT = 30000; // timeout in ms before the next presence update notification will trigger
+    public static final int LOW_SCAN_PERIOD = 5000;
+    public static final int HIGH_SCAN_PERIOD = 200;
 
     //stored parameters. We can't store an ArrayList<Beacon> so we go through this complicated stuff
     public static float detectionDistance = 1; // if the user is closer to the beacon than this distance, the popActivity shows. in meters.

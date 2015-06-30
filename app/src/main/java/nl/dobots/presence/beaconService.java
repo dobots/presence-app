@@ -53,11 +53,13 @@ public class beaconService extends Service {
         try {
             beaconManager.setBackgroundBetweenScanPeriod(0);
             beaconManager.setForegroundBetweenScanPeriod(0);
-            beaconManager.setBackgroundScanPeriod(5000);
-            beaconManager.setForegroundScanPeriod(5000);
+            beaconManager.setBackgroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
+            beaconManager.setForegroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
             beaconManager.updateScanPeriods();
         }
-        catch (RemoteException e) { }
+        catch (RemoteException e) {
+            e.printStackTrace();
+        }
 
         beaconManager.getBeaconParsers().add(new BeaconParser().setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25"));
 
