@@ -1,6 +1,7 @@
 package nl.dobots.presence;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
@@ -48,12 +49,12 @@ public class loginActivity extends Activity {
         fieldServer = (EditText) findViewById(R.id.input_server);
 
         // Prefill username/password fields
-        fieldUsername.setText(PresenceApp.username);
-        fieldPassword.setText(PresenceApp.password); // Not the MD5 hash, but the original password
-        fieldServer.setText(PresenceApp.server);
+        fieldUsername.setText(PresenceApp.INSTANCE.username);
+        fieldPassword.setText(PresenceApp.INSTANCE.password); // Not the MD5 hash, but the original password
+        fieldServer.setText(PresenceApp.INSTANCE.server);
 
         // Give focus to the password form field when we've preset the username
-        if (!PresenceApp.username.equals(PresenceApp.usernameDefault) ) {
+        if (!PresenceApp.INSTANCE.username.equals(PresenceApp.INSTANCE.usernameDefault) ) {
             fieldPassword.requestFocus();
         }
 
@@ -68,38 +69,27 @@ public class loginActivity extends Activity {
 
                 System.err.println("[onClick] Login");
 
-                PresenceApp.username = fieldUsername.getText().toString().toLowerCase();
+                PresenceApp.INSTANCE.username = fieldUsername.getText().toString().toLowerCase();
                 password = fieldPassword.getText().toString();
 
                 // If the password is 32 characters long; consider it being the md5 hash and use that one directly instead
                 if(password.length() == 32)
-                    PresenceApp.password = password;
+                    PresenceApp.INSTANCE.password = password;
                 else
-                    PresenceApp.password = Cryptography.md5(password);
+                    PresenceApp.INSTANCE.password = Cryptography.md5(password);
 
                 Log.w(TAG, "Login - Using REST endpoint ");
 
-                if (PresenceApp.username.equals("") || PresenceApp.password.equals("")) {
+                if (!PresenceApp.INSTANCE.isLoginCredentialsValid()) {
                     Log.w(TAG, "Failed - No username and/or password given via the login form");
                     Toast.makeText(getApplicationContext(), "Please fill in your username and password.", Toast.LENGTH_SHORT).show();
                 }
                 else {
-
-                    // Login request
-                    try {
-                        PresenceApp.ra.login(PresenceApp.username, PresenceApp.password, PresenceApp.server, PresenceApp.closestDoBeacon.getBluetoothName());
-                        if(PresenceApp.ra.getStandByApi().setLocationPresenceManually(true, PresenceApp.closestDoBeacon.getBluetoothName()).get(0)) {
-                            PresenceApp.setIsLoggedIn(true);
-                            hideKeyboard();
-                            Toast.makeText(getApplicationContext(),"Welcome " + PresenceApp.username+ " !",Toast.LENGTH_SHORT).show();
-                            finish();
-                        }
-                        else
-                            Toast.makeText(getApplicationContext(),"Couldn't reach the server ! Are you connected to internet?",Toast.LENGTH_LONG).show();
-                    } catch(Exception e) {
-                        e.printStackTrace();
-                        return;
-                    }
+                   if (PresenceApp.INSTANCE.login()) {
+                       hideKeyboard();
+                       Toast.makeText(getApplicationContext(),"Welcome " + PresenceApp.INSTANCE.username+ " !",Toast.LENGTH_SHORT).show();
+                       finish();
+                   }
 
                 }
             }
@@ -110,7 +100,7 @@ public class loginActivity extends Activity {
     public void onDestroy(){
         super.onDestroy();
         isLoginActivityActive = false;
-        if (PresenceApp.isLoggedIn())
+        if (PresenceApp.INSTANCE.isLoggedIn())
             writePersistentSettings();
     }
 
@@ -133,9 +123,9 @@ public class loginActivity extends Activity {
         editor.remove("usernameKey");
         editor.remove("passwordKey");
         editor.remove("serverKey");
-        editor.putString("usernameKey", PresenceApp.username);
-        editor.putString("passwordKey", PresenceApp.password);
-        editor.putString("serverKey", PresenceApp.server);
+        editor.putString("usernameKey", PresenceApp.INSTANCE.username);
+        editor.putString("passwordKey", PresenceApp.INSTANCE.password);
+        editor.putString("serverKey", PresenceApp.INSTANCE.server);
         // Commit the edits!
         editor.commit();
     }

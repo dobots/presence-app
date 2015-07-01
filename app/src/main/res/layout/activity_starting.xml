@@ -140,5 +140,15 @@
             android:layout_alignParentEnd="true"
             android:layout_alignStart="@+id/loginButton"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Low Frequency Scanning"
+            android:id="@+id/lblFreqScanning"
+            android:layout_below="@+id/clearSettingsButton"
+            android:layout_alignParentStart="true"
+            android:layout_marginTop="32dp" />
+
     </RelativeLayout>
 </ScrollView>

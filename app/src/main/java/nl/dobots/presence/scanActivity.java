@@ -48,17 +48,19 @@ public class scanActivity extends Activity implements OnItemClickListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.custom_listview);
         isScanActivityActive=true;
-        doBeaconUnfilteredArray= PresenceApp.doBeaconArray;
+        doBeaconUnfilteredArray= PresenceApp.INSTANCE.doBeaconArray;
 
-        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
-        try {
-            beaconManager.setBackgroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
-            beaconManager.setForegroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
-            beaconManager.updateScanPeriods();
-        }
-        catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        PresenceApp.INSTANCE.setHighFrequencyDetection(true);
+
+//        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+//        try {
+//            beaconManager.setBackgroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
+//            beaconManager.setForegroundScanPeriod(PresenceApp.HIGH_SCAN_PERIOD);
+//            beaconManager.updateScanPeriods();
+//        }
+//        catch (RemoteException e) {
+//            e.printStackTrace();
+//        }
         
         //show a progress message
         progress = new ProgressDialog(this);
@@ -99,17 +101,19 @@ public class scanActivity extends Activity implements OnItemClickListener {
         super.onDestroy();
         isScanActivityActive=false;
         writePersistentSettings();
-        PresenceApp.doBeaconArray=doBeaconSelectedArray;
+        PresenceApp.INSTANCE.doBeaconArray=doBeaconSelectedArray;
 
-        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
-        try {
-            beaconManager.setBackgroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
-            beaconManager.setForegroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
-            beaconManager.updateScanPeriods();
-        }
-        catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        PresenceApp.INSTANCE.setHighFrequencyDetection(false);
+
+//        BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+//        try {
+//            beaconManager.setBackgroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
+//            beaconManager.setForegroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
+//            beaconManager.updateScanPeriods();
+//        }
+//        catch (RemoteException e) {
+//            e.printStackTrace();
+//        }
     }
 
     @Override
@@ -148,7 +152,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
 
         @Override
         public long getItemId(int position) {
-            return PresenceApp.beaconAddressArray.indexOf(innerClassdoBeaconUnfilteredArray.get(position));
+            return PresenceApp.INSTANCE.beaconAddressArray.indexOf(innerClassdoBeaconUnfilteredArray.get(position));
         }
 
         public void updateResults(ArrayList<Beacon> results) {
@@ -182,7 +186,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
                 doBeaconMajorView.setText("Major: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId2())
                         + "           Minor: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId3())
                         + "\nDistance: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getDistance()) + " m");
-                if(PresenceApp.beaconAddressArray.contains(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress())) {
+                if(PresenceApp.INSTANCE.beaconAddressArray.contains(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress())) {
                     convertView.setBackgroundColor(0x660000FF);
                     if(!doBeaconSelectedArray.contains(doBeaconUnfilteredArray.get(position))) doBeaconSelectedArray.add(doBeaconUnfilteredArray.get(position));
                     Log.i(TAG,"<--added beacon "+ doBeaconUnfilteredArray.get(position).getBluetoothName());
@@ -201,13 +205,13 @@ public class scanActivity extends Activity implements OnItemClickListener {
     @Override
     public void onItemClick(AdapterView<?> arg0, View arg1, int arg2, long arg3) {
         Log.i(TAG,"clicked on item" + arg2);
-        if(!PresenceApp.beaconAddressArray.contains(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress())) {
-            PresenceApp.beaconAddressArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
+        if(!PresenceApp.INSTANCE.beaconAddressArray.contains(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress())) {
+            PresenceApp.INSTANCE.beaconAddressArray.add(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
             arg1.setBackgroundColor(0x660000FF);
         }
         else{
             doBeaconSelectedArray.remove(doBeaconUnfilteredArray.get(arg2));
-            PresenceApp.beaconAddressArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
+            PresenceApp.INSTANCE.beaconAddressArray.remove(doBeaconUnfilteredArray.get(arg2).getBluetoothAddress());
             arg1.setBackgroundColor(0x00000000);
         }
     }
@@ -229,16 +233,16 @@ public class scanActivity extends Activity implements OnItemClickListener {
     private void writePersistentSettings() {
         //store the settings in the Shared Preference file
         SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
-        PresenceApp.password=settings.getString("passwordKey", PresenceApp.passwordDefault);
-        PresenceApp.username=settings.getString("usernameKey", PresenceApp.usernameDefault);
-        PresenceApp.server=settings.getString("serverKey", PresenceApp.serverDefault);
-        PresenceApp.detectionDistance=settings.getFloat("detectionDistanceKey", PresenceApp.detectionDistanceDefault);
+        PresenceApp.INSTANCE.password=settings.getString("passwordKey", PresenceApp.INSTANCE.passwordDefault);
+        PresenceApp.INSTANCE.username=settings.getString("usernameKey", PresenceApp.INSTANCE.usernameDefault);
+        PresenceApp.INSTANCE.server=settings.getString("serverKey", PresenceApp.INSTANCE.serverDefault);
+        PresenceApp.INSTANCE.detectionDistance=settings.getFloat("detectionDistanceKey", PresenceApp.INSTANCE.detectionDistanceDefault);
         SharedPreferences.Editor editor = settings.edit();
         editor.clear();
-        editor.putFloat("detectionDistanceKey", PresenceApp.detectionDistance);
-        editor.putString("usernameKey", PresenceApp.username);
-        editor.putString("passwordKey", PresenceApp.password);
-        editor.putString("serverKey", PresenceApp.server);
+        editor.putFloat("detectionDistanceKey", PresenceApp.INSTANCE.detectionDistance);
+        editor.putString("usernameKey", PresenceApp.INSTANCE.username);
+        editor.putString("passwordKey", PresenceApp.INSTANCE.password);
+        editor.putString("serverKey", PresenceApp.INSTANCE.server);
         editor.putInt("doBeaconListSize", doBeaconSelectedArray.size());
         Log.i(TAG,"saved the "+ doBeaconSelectedArray.size()+" beacons selected");
         for (int i=0;i<doBeaconSelectedArray.size();i++)

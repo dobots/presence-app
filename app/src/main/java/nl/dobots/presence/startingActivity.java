@@ -24,6 +24,7 @@ public class startingActivity extends Activity {
     public static boolean isSettingsActive;
     final Handler handler = new Handler();
     private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
+    private TextView lblFreqScanning;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,6 +33,12 @@ public class startingActivity extends Activity {
         isSettingsActive = true;
         //make sure the user's phone is BLE compatible and has BLE enabled. Offers to turn it on otherwise.
 //        verifyBluetooth();
+
+        // check if login information is present, otherwise ..
+        if (!PresenceApp.INSTANCE.isLoginCredentialsValid()) {
+            // go first to login page
+            onLoginClick();
+        }
 
         initUI();
 
@@ -91,22 +98,25 @@ public class startingActivity extends Activity {
         SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.remove("detectionDistanceKey");
-        editor.putFloat("detectionDistanceKey", PresenceApp.detectionDistance);
+        editor.putFloat("detectionDistanceKey", PresenceApp.INSTANCE.detectionDistance);
         editor.commit();
     }
 
     public void updateCurrentDistance(){
         final TextView currentDistanceText = (TextView) findViewById(R.id.currentDistanceHint);
-        if (!PresenceApp.beaconAddressArray.isEmpty() && PresenceApp.beaconAddressArray.contains(PresenceApp.closestDoBeacon.getBluetoothAddress()))
-            currentDistanceText.setText("closest DoBeacon " + PresenceApp.closestDoBeacon.getBluetoothName() + ": " + String.valueOf(PresenceApp.closestDoBeacon.getDistance()) + "m");
+        if (!PresenceApp.INSTANCE.beaconAddressArray.isEmpty() && PresenceApp.INSTANCE.beaconAddressArray.contains(PresenceApp.INSTANCE.closestDoBeacon.getBluetoothAddress()))
+            currentDistanceText.setText("closest DoBeacon " + PresenceApp.INSTANCE.closestDoBeacon.getBluetoothName() + ": " + String.valueOf(PresenceApp.INSTANCE.closestDoBeacon.getDistance()) + "m");
         else
-            if(PresenceApp.beaconAddressArray.isEmpty())
+            if(PresenceApp.INSTANCE.beaconAddressArray.isEmpty())
                 currentDistanceText.setText("Please select your Dobeacons !");
-            else
-                currentDistanceText.setText("loading...");
+//            else
+//                currentDistanceText.setText("loading...");
     }
 
     private void initUI(){
+
+        lblFreqScanning = (TextView) findViewById(R.id.lblFreqScanning);
+
         //start buttons
         final Button stopButton = (Button) findViewById(R.id.stopButton);
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -135,22 +145,25 @@ public class startingActivity extends Activity {
         });
         //start seekBar and distance related texts
         final TextView detectionDistanceText = (TextView) findViewById(R.id.detectionDistance);
-        detectionDistanceText.setText(String.valueOf(PresenceApp.detectionDistance) + "m");
+        detectionDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.detectionDistance) + "m");
+
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 updateCurrentDistance();
+                updatelblFreqScanning();
                 if(isSettingsActive)handler.postDelayed(this, 500);
             }
         }, 1000);
+
         SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
-        distanceBar.setProgress((int) PresenceApp.detectionDistance*5);
+        distanceBar.setProgress((int) PresenceApp.INSTANCE.detectionDistance*5);
         distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int progress = 0;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                PresenceApp.detectionDistance= (float) ( progress / 5.0);
-                detectionDistanceText.setText(String.valueOf(PresenceApp.detectionDistance) + "m");
+                PresenceApp.INSTANCE.detectionDistance= (float) ( progress / 5.0);
+                detectionDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.detectionDistance) + "m");
             }
 
             @Override
@@ -161,6 +174,19 @@ public class startingActivity extends Activity {
             public void onStopTrackingTouch(SeekBar seekBar) {
             }
         });
+    }
+
+    private boolean lastHighFrequencyDetection = false;
+    private void updatelblFreqScanning() {
+        if (lastHighFrequencyDetection == PresenceApp.INSTANCE.mHighFrequencyDetection) return;
+
+        if (PresenceApp.INSTANCE.mHighFrequencyDetection) {
+            lblFreqScanning.setText("High Frequency Scanning");
+        } else {
+            lblFreqScanning.setText("Low Frequency Scanning");
+        }
+
+        lastHighFrequencyDetection = PresenceApp.INSTANCE.mHighFrequencyDetection;
     }
 
     private void onStopAppClick() {
@@ -180,7 +206,7 @@ public class startingActivity extends Activity {
     }
 
     private void killApp(){
-        PresenceApp.regionBootstrap.disable();
+        PresenceApp.INSTANCE.regionBootstrap.disable();
         final Intent beaconServiceIntent = new Intent(this, beaconService.class);
         this.stopService(beaconServiceIntent);
         finish();
@@ -190,12 +216,12 @@ public class startingActivity extends Activity {
     private void clearSettings(){
         SharedPreferences settings = getSharedPreferences(PresenceApp.SETTING_FILE, 0);
         settings.edit().clear().commit();
-        PresenceApp.buildClosestBeacon();
-        PresenceApp.doBeaconArray.clear();
-        PresenceApp.beaconAddressArray.clear();
-        PresenceApp.password= PresenceApp.passwordDefault;
-        PresenceApp.username= PresenceApp.usernameDefault;
-        PresenceApp.detectionDistance= PresenceApp.detectionDistanceDefault;
+        PresenceApp.INSTANCE.buildClosestBeacon();
+        PresenceApp.INSTANCE.doBeaconArray.clear();
+        PresenceApp.INSTANCE.beaconAddressArray.clear();
+        PresenceApp.INSTANCE.password= PresenceApp.INSTANCE.passwordDefault;
+        PresenceApp.INSTANCE.username= PresenceApp.INSTANCE.usernameDefault;
+        PresenceApp.INSTANCE.detectionDistance= PresenceApp.INSTANCE.detectionDistanceDefault;
         initUI();
     }
 
