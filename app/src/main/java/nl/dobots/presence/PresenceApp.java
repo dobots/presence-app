@@ -59,8 +59,11 @@ public class PresenceApp extends Application implements BootstrapNotifier {
     public static final int HIGH_SCAN_PERIOD = 500;
     public static final int HIGH_SCAN_EXPIRATION = 2000;
 
-    public static final double HIGH_FREQUENCY_DISTANCE_ENTER = 6;
-    public static final double HIGH_FREQUENCY_DISTANCE_LEAVE = 10;
+    public static final float HIGH_FREQUENCY_DISTANCE = 6;
+    public static final float LOW_FREQUENCY_DISTANCE = 10;
+
+    public float highFrequencyDistance = HIGH_FREQUENCY_DISTANCE;
+    public float lowFrequencyDistance = LOW_FREQUENCY_DISTANCE;
 
     // Variables
 
@@ -226,8 +229,8 @@ public class PresenceApp extends Application implements BootstrapNotifier {
                 Beacon closestDoBeacon= new Beacon.Builder()
                         .setBluetoothName("dummy")
                         .setBluetoothAddress("RA:ND:OM:AD:DR:ES")
-                        .setRssi(-HIGH_SCAN_EXPIRATION)
-                        .build();;
+                        .setRssi(-2000)
+                        .build();
                 for (int i = 0; i < doBeaconArray.size(); i++)
                     if (beaconAddressArray.contains(doBeaconArray.get(i).getBluetoothAddress()) && doBeaconArray.get(i).getDistance() < closestDoBeacon.getDistance())
                         closestDoBeacon = doBeaconArray.get(i);
@@ -254,9 +257,9 @@ public class PresenceApp extends Application implements BootstrapNotifier {
         mNetworkHandler.post(new Runnable() {
             @Override
             public void run() {
-                if (closestDoBeacon.getDistance() < HIGH_FREQUENCY_DISTANCE_ENTER) {
+                if (closestDoBeacon.getDistance() < highFrequencyDistance) {
                     setHighFrequencyDetection(true);
-                } else if (closestDoBeacon.getDistance() > HIGH_FREQUENCY_DISTANCE_LEAVE) {
+                } else if (closestDoBeacon.getDistance() > lowFrequencyDistance) {
                     setHighFrequencyDetection(false);
                 }
             }
@@ -431,6 +434,8 @@ public class PresenceApp extends Application implements BootstrapNotifier {
     private void readPersistentStorage() {
         SharedPreferences settings = getSharedPreferences(SETTING_FILE, 0);
         detectionDistance=settings.getFloat("detectionDistanceKey", detectionDistanceDefault);
+        lowFrequencyDistance = settings.getFloat("lowFrequencyDistanceKey", LOW_FREQUENCY_DISTANCE);
+        highFrequencyDistance = settings.getFloat("highFrequencyDistanceKey", HIGH_FREQUENCY_DISTANCE);
         username= settings.getString("usernameKey", usernameDefault);
         password= settings.getString("passwordKey", passwordDefault);
         server= settings.getString("serverKey",serverDefault);

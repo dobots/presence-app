@@ -99,6 +99,8 @@ public class startingActivity extends Activity {
         SharedPreferences.Editor editor = settings.edit();
         editor.remove("detectionDistanceKey");
         editor.putFloat("detectionDistanceKey", PresenceApp.INSTANCE.detectionDistance);
+        editor.putFloat("lowFrequencyDistanceKey", PresenceApp.INSTANCE.lowFrequencyDistance);
+        editor.putFloat("highFrequencyDistanceKey", PresenceApp.INSTANCE.highFrequencyDistance);
         editor.commit();
     }
 
@@ -147,23 +149,70 @@ public class startingActivity extends Activity {
         final TextView detectionDistanceText = (TextView) findViewById(R.id.detectionDistance);
         detectionDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.detectionDistance) + "m");
 
+        final TextView highFrequencyDistanceText = (TextView) findViewById(R.id.highFrequencyDistanceText);
+        highFrequencyDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.highFrequencyDistance) + "m");
+
+        final TextView lowFrequencyDistanceText = (TextView) findViewById(R.id.lowFrequencyDistanceText);
+        lowFrequencyDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.lowFrequencyDistance) + "m");
+
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 updateCurrentDistance();
                 updatelblFreqScanning();
-                if(isSettingsActive)handler.postDelayed(this, 500);
+                if (isSettingsActive) handler.postDelayed(this, 500);
             }
         }, 1000);
 
         SeekBar distanceBar= (SeekBar) findViewById(R.id.distanceBar);
-        distanceBar.setProgress((int) PresenceApp.INSTANCE.detectionDistance*5);
+        distanceBar.setProgress((int) PresenceApp.INSTANCE.detectionDistance * 5);
         distanceBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            int progress = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                PresenceApp.INSTANCE.detectionDistance = (float) (progress / 5.0);
+                detectionDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.detectionDistance) + "m");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        SeekBar highFrequencyDistance = (SeekBar) findViewById(R.id.highFrequencyDistance);
+        highFrequencyDistance.setProgress((int) PresenceApp.INSTANCE.highFrequencyDistance*5);
+        highFrequencyDistance.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            int progress = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                PresenceApp.INSTANCE.highFrequencyDistance = (float) (progress / 5.0);
+                TextView text = (TextView) seekBar.getTag();
+                highFrequencyDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.highFrequencyDistance) + "m");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
+
+        SeekBar lowFrequencyDistance = (SeekBar) findViewById(R.id.lowFrequencyDistance);
+        lowFrequencyDistance.setProgress((int) PresenceApp.INSTANCE.lowFrequencyDistance * 5);
+        lowFrequencyDistance.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             int progress = 0;
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                PresenceApp.INSTANCE.detectionDistance= (float) ( progress / 5.0);
-                detectionDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.detectionDistance) + "m");
+                PresenceApp.INSTANCE.lowFrequencyDistance= (float) ( progress / 5.0);
+                lowFrequencyDistanceText.setText(String.valueOf(PresenceApp.INSTANCE.lowFrequencyDistance) + "m");
             }
 
             @Override
@@ -222,6 +271,8 @@ public class startingActivity extends Activity {
         PresenceApp.INSTANCE.password= PresenceApp.INSTANCE.passwordDefault;
         PresenceApp.INSTANCE.username= PresenceApp.INSTANCE.usernameDefault;
         PresenceApp.INSTANCE.detectionDistance= PresenceApp.INSTANCE.detectionDistanceDefault;
+        PresenceApp.INSTANCE.highFrequencyDistance = PresenceApp.HIGH_FREQUENCY_DISTANCE;
+        PresenceApp.INSTANCE.lowFrequencyDistance= PresenceApp.LOW_FREQUENCY_DISTANCE;
         initUI();
     }
 

@@ -37,6 +37,25 @@
             android:layout_alignParentEnd="false"
             android:textAlignment="center"/>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Low Frequency Scanning"
+            android:id="@+id/lblFreqScanning"
+            android:layout_below="@+id/textView2"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="10dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:id="@+id/currentDistanceHint"
+            android:layout_below="@+id/lblFreqScanning"
+            android:layout_marginTop="10dp"
+            android:layout_alignParentStart="true"/>
+
         <Button
             android:id="@+id/scanButton"
             android:text="  Search your DoBeacon  "
@@ -98,15 +117,6 @@
             android:layout_alignTop="@+id/detectionDistanceHint"
             android:layout_toEndOf="@+id/detectionDistanceHint"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:id="@+id/currentDistanceHint"
-            android:layout_below="@+id/textView2"
-            android:layout_marginTop="20dp"
-            android:layout_alignParentStart="true"/>
-
         <Button
             android:id="@+id/clearSettingsButton"
             android:text="clear Settings"
@@ -143,12 +153,61 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Low Frequency Scanning"
-            android:id="@+id/lblFreqScanning"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Change the high frequency trigger distance:"
+            android:id="@+id/highFrequencyDistanceHint"
             android:layout_below="@+id/clearSettingsButton"
             android:layout_alignParentStart="true"
-            android:layout_marginTop="32dp" />
+            android:layout_marginTop="31dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/distance"
+            android:id="@+id/highFrequencyDistanceText"
+            android:layout_alignTop="@+id/highFrequencyDistanceHint"
+            android:layout_toEndOf="@+id/highFrequencyDistanceHint"/>
+
+        <SeekBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/highFrequencyDistance"
+            android:visibility="visible"
+            android:clickable="false"
+            android:layout_below="@+id/highFrequencyDistanceHint"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Change the low frequency trigger distance:"
+            android:id="@+id/lowFrequencyDistanceHint"
+            android:layout_marginTop="19dp"
+            android:layout_below="@+id/highFrequencyDistance"
+            android:layout_alignParentStart="true"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="@string/distance"
+            android:id="@+id/lowFrequencyDistanceText"
+            android:layout_alignTop="@+id/lowFrequencyDistanceHint"
+            android:layout_toEndOf="@+id/lowFrequencyDistanceHint"/>
+
+        <SeekBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/lowFrequencyDistance"
+            android:visibility="visible"
+            android:clickable="false"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentEnd="true"
+            android:layout_below="@+id/lowFrequencyDistanceHint"
+            android:layout_alignParentLeft="true"/>
 
     </RelativeLayout>
 </ScrollView>

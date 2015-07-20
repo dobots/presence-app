@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Presence</string>
+    <string name="app_name">Who\'s In</string>
 
     <!--Popup activity strings -->
     <string name="IOquestion">Are you going in or out? </string>

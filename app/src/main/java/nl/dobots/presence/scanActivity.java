@@ -179,7 +179,7 @@ public class scanActivity extends Activity implements OnItemClickListener {
             doBeaconNameView = (TextView) convertView.findViewById(R.id.doBeaconName);
             doBeaconUUIDView = (TextView) convertView.findViewById(R.id.doBeaconUUID);
             doBeaconMajorView = (TextView) convertView.findViewById(R.id.doBeaconMajor);
-            if (!innerClassdoBeaconUnfilteredArray.isEmpty()) {
+            if (!innerClassdoBeaconUnfilteredArray.isEmpty() && isScanActivityActive) {
                 doBeaconNameView.setText(innerClassdoBeaconUnfilteredArray.get(position).getBluetoothName());
                 doBeaconUUIDView.setText("UUID: " + String.valueOf(innerClassdoBeaconUnfilteredArray.get(position).getId1())
                         + "\nAddress: " + innerClassdoBeaconUnfilteredArray.get(position).getBluetoothAddress());
