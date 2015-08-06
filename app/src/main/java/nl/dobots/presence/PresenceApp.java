@@ -18,6 +18,7 @@ import android.os.RemoteException;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.altbeacon.beacon.Beacon;
 import org.altbeacon.beacon.BeaconManager;
@@ -34,6 +35,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 import nl.dobots.presence.rest.RestApi;
+import retrofit.RetrofitError;
 
 /**
  * Created by christian Haas-Frangi on 15/06/15.
@@ -53,9 +55,11 @@ public class PresenceApp extends Application implements BootstrapNotifier {
 
     public static final long TIMEOUT = 30000; // timeout in ms before the next presence update notification will trigger
 
-    public static final int LOW_SCAN_PERIOD = 5000;
-    public static final int LOW_SCAN_EXPIRATION = 5000;
+    public static final int LOW_SCAN_PAUSE = 2500;
+    public static final int LOW_SCAN_PERIOD = 500;
+    public static final int LOW_SCAN_EXPIRATION = 3500;
 
+    public static final int HIGH_SCAN_PAUSE = 500;
     public static final int HIGH_SCAN_PERIOD = 500;
     public static final int HIGH_SCAN_EXPIRATION = 2000;
 
@@ -111,8 +115,10 @@ public class PresenceApp extends Application implements BootstrapNotifier {
     public static PresenceApp INSTANCE;
 
     private NotificationManager notificationManager;
+    private NotificationCompat.Builder _builder;
 
     public boolean mHighFrequencyDetection = false;
+    private boolean retry;
 
     @Override
     public void onCreate() {
@@ -167,12 +173,16 @@ public class PresenceApp extends Application implements BootstrapNotifier {
         try {
             if (enable) {
                 Log.i(TAG, "set scan frequency to high");
+                beaconManager.setBackgroundBetweenScanPeriod(PresenceApp.HIGH_SCAN_PAUSE);
+                beaconManager.setForegroundBetweenScanPeriod(PresenceApp.HIGH_SCAN_PAUSE);
                 beaconManager.setBackgroundScanPeriod(HIGH_SCAN_PERIOD);
                 beaconManager.setForegroundScanPeriod(HIGH_SCAN_PERIOD);
                 beaconManager.updateScanPeriods();
                 RangedBeacon.setSampleExpirationMilliseconds(HIGH_SCAN_EXPIRATION);
             } else {
                 Log.i(TAG, "set scan frequency to low");
+                beaconManager.setBackgroundBetweenScanPeriod(PresenceApp.LOW_SCAN_PAUSE);
+                beaconManager.setForegroundBetweenScanPeriod(PresenceApp.LOW_SCAN_PAUSE);
                 beaconManager.setBackgroundScanPeriod(LOW_SCAN_PERIOD);
                 beaconManager.setForegroundScanPeriod(LOW_SCAN_PERIOD);
                 beaconManager.updateScanPeriods();
@@ -320,18 +330,32 @@ public class PresenceApp extends Application implements BootstrapNotifier {
             //we only send the new position if it differs from the old one, to avoid surcharging the server
             if (!isLoggedIn()) {
                 login();
+
+                if (!isLoggedIn()) {
+                    Log.e(TAG, "failed to log in");
+                    _builder.setContentText("Can't login, please check your internet!")
+                            .setStyle(new NotificationCompat.BigTextStyle().bigText("Can't login, please check your internet!"));
+                    notificationManager.notify(PRESENCE_NOTIFICATION_ID, _builder.build());
+                    Toast.makeText(this, "Can't login, please check your internet!", Toast.LENGTH_LONG);
+                    return;
+                }
             }
             if (isLoggedIn() && (currentPresence != present)) {
                 ra.getStandByApi().setLocationPresenceManually(present, currentLocation);
                 currentPresence = present;
-                updatingPresence = false;
-                lastPresenceUpdateTime = System.currentTimeMillis();
-                notificationManager.cancel(PRESENCE_NOTIFICATION_ID);
             }
-            else {
-                Log.d(TAG, "failed to log in");
+            updatingPresence = false;
+            lastPresenceUpdateTime = System.currentTimeMillis();
+            notificationManager.cancel(PRESENCE_NOTIFICATION_ID);
+            retry = false;
+        } catch (RetrofitError e) {
+            e.printStackTrace();
+            isLoggedIn = false;
+            if (!retry) {
+                updatePresence(present);
+                retry = true;
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -360,7 +384,7 @@ public class PresenceApp extends Application implements BootstrapNotifier {
         Intent dismissIntent = new Intent(PRESENCE_UPDATE_DISMISS);
         PendingIntent piDismiss = PendingIntent.getBroadcast(this, 0, dismissIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+        _builder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("Presence detected")
                 .setContentText(shortMessage)
@@ -372,7 +396,7 @@ public class PresenceApp extends Application implements BootstrapNotifier {
                 .setContentIntent(contentIntent)
                 .setLights(Color.BLUE, 500, 1000);
 
-        notificationManager.notify(PRESENCE_NOTIFICATION_ID, builder.build());
+        notificationManager.notify(PRESENCE_NOTIFICATION_ID, _builder.build());
     }
 
     private BroadcastReceiver receiver = new BroadcastReceiver() {

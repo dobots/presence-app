@@ -1,6 +1,5 @@
 package nl.dobots.presence;
 
-import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -8,19 +7,15 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
 import org.altbeacon.beacon.BeaconManager;
 import org.altbeacon.beacon.BeaconParser;
-
-import nl.dobots.presence.rest.RestApi;
 
 /**
  * Created by christian Haas-Frangi on 16/06/15.
@@ -51,8 +46,8 @@ public class beaconService extends Service {
         this.registerReceiver(mReceiver, new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED));
         beaconManager = BeaconManager.getInstanceForApplication(this);
         try {
-            beaconManager.setBackgroundBetweenScanPeriod(0);
-            beaconManager.setForegroundBetweenScanPeriod(0);
+            beaconManager.setBackgroundBetweenScanPeriod(PresenceApp.LOW_SCAN_PAUSE);
+            beaconManager.setForegroundBetweenScanPeriod(PresenceApp.LOW_SCAN_PAUSE);
             beaconManager.setBackgroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
             beaconManager.setForegroundScanPeriod(PresenceApp.LOW_SCAN_PERIOD);
             beaconManager.updateScanPeriods();

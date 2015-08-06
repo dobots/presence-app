@@ -21,7 +21,7 @@ import org.altbeacon.beacon.BeaconManager;
  */
 public class startingActivity extends Activity {
     protected static final String TAG = startingActivity.class.getCanonicalName();
-    public static boolean isSettingsActive;
+//    public static boolean isSettingsActive;
     final Handler handler = new Handler();
     private BeaconManager beaconManager = BeaconManager.getInstanceForApplication(this);
     private TextView lblFreqScanning;
@@ -49,8 +49,8 @@ public class startingActivity extends Activity {
         super.onDestroy();
         isSettingsActive=false;
         writePersistentSettings();
-        final Intent restartAppIntent = new Intent (this, PresenceApp.class);
-        this.startService(restartAppIntent);
+//        final Intent restartAppIntent = new Intent (this, PresenceApp.class);
+//        this.startService(restartAppIntent);
 
     }
 
