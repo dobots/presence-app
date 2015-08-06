@@ -1,22 +1,15 @@
 <resources>
     <string name="app_name">Who\'s In</string>
+    <string name="title_activity_main">Who\'s In</string>
 
-    <!--Popup activity strings -->
-    <string name="IOquestion">Are you going in or out? </string>
+    <string name="action_settings">settings</string>
 
-    <!--Starting activity strings -->
-    <string name="setting_title">Welcome to the Presence app!</string>
-    <string name="message_setting">Select your DoBeacons, fill your credentials and close the app ! </string>
-    <string name="distance"/>
+    <string name="title_main">welcome to the Who\'s In app!</string>
+    <string name="message_setting">the app will automatically register you online if you pass one of the beacons within the configured distance.</string>
 
-    <!--General strings -->
-    <string name="action_settings">Settings</string>
-    <string name="service_name">Presence Service</string>
+	<string name="hello_world">hello world!</string>
 
-    <!--Login activity string -->
-    <string name="login_username">Username</string>
-    <string name="login_password">Password</string>
-    <string name="login_submit">Login</string>
-    <string name="login_system"><i>System</i></string>
-    <string name="login_server">Server</string>
+	<string name="title_activity_settings">Settings</string>
+	<string name="action_login">LogIn</string>
+	<string name="title_activity_login">Log In</string>
 </resources>
