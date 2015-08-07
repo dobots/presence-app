@@ -43,7 +43,7 @@
 			android:inputType="textUri"
 			android:singleLine="true" />
 		<Button
-			android:id="@+id/btn_login"
+			android:id="@+id/button_login"
 			android:layout_width="match_parent"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="20dp"

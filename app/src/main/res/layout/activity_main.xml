@@ -1,0 +1,116 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+				xmlns:tools="http://schemas.android.com/tools"
+				android:layout_width="match_parent"
+				android:layout_height="match_parent"
+				android:paddingLeft="@dimen/activity_horizontal_margin"
+				android:paddingRight="@dimen/activity_horizontal_margin"
+				android:paddingTop="@dimen/activity_vertical_margin"
+				android:paddingBottom="@dimen/activity_vertical_margin"
+				tools:context="nl.dobots.presence.gui.MainActivity">
+
+	<TextView
+		android:text="@string/title_main"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceLarge"
+		android:layout_alignParentTop="true"
+		android:layout_centerHorizontal="true"
+		android:textStyle="bold"
+		android:id="@+id/lblTitle"/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:text="@string/message_setting"
+		android:id="@+id/lblMessage"
+		android:layout_below="@+id/lblTitle"
+		android:layout_alignParentStart="true"
+		android:layout_marginTop="32dp"
+		android:layout_alignParentEnd="false"
+		android:textAlignment="center"/>
+
+	<TextView
+		android:id="@+id/lblPresence"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:text="Current Presence:"
+		android:layout_marginTop="16dp"
+		android:layout_below="@+id/lblMessage"
+		/>
+
+	<TextView
+		android:id="@+id/txtPresence"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:text="Not Present"
+		android:textStyle="bold|italic"
+		android:layout_below="@+id/lblPresence"
+		android:layout_centerHorizontal="true"
+		/>
+
+	<TextView
+		android:id="@+id/txtLocation"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:text="DummyLocation (1m)"
+		android:textStyle="bold|italic"
+		android:layout_below="@+id/txtPresence"
+		android:layout_marginStart="32dp"
+		/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:textAppearance="?android:attr/textAppearanceMedium"
+		android:text="Low Frequency Scanning"
+		android:id="@+id/txtFreqScanning"
+		android:layout_marginTop="48dp"
+		android:layout_below="@+id/lblPresence"
+		android:layout_centerHorizontal="true"/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/txtCurrentDistance"
+		android:layout_below="@+id/txtFreqScanning"
+		android:layout_marginTop="20dp"
+		android:textStyle="bold"
+		android:layout_alignParentStart="true"/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/txtCurrentDistance2"
+		android:layout_below="@+id/txtCurrentDistance"
+		android:layout_marginTop="20dp"
+		android:textStyle="bold"
+		android:layout_alignParentStart="true"/>
+
+	<TextView
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:id="@+id/txtCurrentDistance3"
+		android:layout_below="@+id/txtCurrentDistance2"
+		android:layout_marginTop="20dp"
+		android:textStyle="bold"
+		android:layout_alignParentStart="true"/>
+
+	<Button
+		android:id="@+id/btnToggleScan"
+		android:text="Stop"
+		android:padding="30dp"
+		android:textSize="22sp"
+		android:layout_width="wrap_content"
+		android:layout_height="wrap_content"
+		android:layout_below="@+id/txtCurrentDistance3"
+		android:layout_marginTop="30dp"
+		android:layout_centerHorizontal="true"
+		android:onClick="toggleScan"
+		/>
+
+
+</RelativeLayout>

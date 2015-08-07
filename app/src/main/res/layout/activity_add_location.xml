@@ -1,0 +1,52 @@
+<RelativeLayout
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/content_login"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	tools:context="nl.dobots.presence.gui.LocationsListActivity"
+	android:paddingTop="@dimen/activity_vertical_margin"
+	android:paddingBottom="@dimen/activity_vertical_margin"
+	android:paddingLeft="@dimen/activity_horizontal_margin"
+	android:paddingRight="@dimen/activity_horizontal_margin" >
+
+	<EditText
+		android:id="@+id/edtAddLocationName"
+		android:layout_height="wrap_content"
+		android:layout_width="match_parent"
+		android:layout_marginTop="20dp"
+		android:padding="12dp"
+		android:hint="Location Name"
+		android:inputType="text"
+		android:singleLine="true"
+		android:layout_alignParentTop="true"
+		/>
+
+	<Button
+		android:id="@+id/btnScanLocationBeacons"
+		android:text="Scan for Beacons"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:onClick="toggleScan"
+		android:layout_below="@id/edtAddLocationName"
+		/>
+
+	<Button
+		android:id="@+id/btnAddLocation"
+		android:text="Add"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:onClick="addLocation"
+		android:layout_alignParentBottom="true"
+		/>
+
+	<ListView
+		android:id="@+id/lvScannedBeacons"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_below="@id/btnScanLocationBeacons"
+		android:layout_above="@id/btnAddLocation"
+		/>
+
+</RelativeLayout>
+
