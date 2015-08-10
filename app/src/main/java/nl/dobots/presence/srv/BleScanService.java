@@ -17,19 +17,15 @@ import nl.dobots.bluenet.callbacks.IStatusCallback;
 import nl.dobots.bluenet.extended.BleExt;
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
+import nl.dobots.presence.Config;
 import nl.dobots.presence.ScanDeviceListener;
-import nl.dobots.presence.gui.MainActivity;
 
 public class BleScanService extends Service {
 
 	private static final String TAG = BleScanService.class.getCanonicalName();
 
-	private static final String EXTRA_SCAN_INTERVAL = "nl.dobots.presence.SCAN_INTERVAL";
-	private static final String EXTRA_SCAN_PAUSE = "nl.dobots.presence.SCAN_PAUSE";
-
-	private static final int SCAN_INTERVAL = 2000;
-//	private static final int SCAN_PAUSE = 2000;
-	private static final int SCAN_PAUSE = 0;
+	private static final String EXTRA_SCAN_INTERVAL = "nl.dobots.presence.LOW_SCAN_INTERVAL";
+	private static final String EXTRA_SCAN_PAUSE = "nl.dobots.presence.LOW_SCAN_PAUSE";
 
 	private static BleScanService INSTANCE;
 
@@ -50,8 +46,8 @@ public class BleScanService extends Service {
 	private boolean _scanning = false;
 	private boolean _stopped = false;
 
-	private int _scanPause = SCAN_PAUSE;
-	private int _scanInterval = SCAN_INTERVAL;
+	private int _scanPause = Config.LOW_SCAN_PAUSE;
+	private int _scanInterval = Config.LOW_SCAN_INTERVAL;
 
 	public BleScanService() {
 		Log.d(TAG, "constructor");
@@ -98,8 +94,8 @@ public class BleScanService extends Service {
 		if (intent != null) {
 			Bundle bundle = intent.getExtras();
 			if (bundle != null) {
-				_scanInterval = bundle.getInt(EXTRA_SCAN_INTERVAL, SCAN_INTERVAL);
-				_scanPause = bundle.getInt(EXTRA_SCAN_PAUSE, SCAN_PAUSE);
+				_scanInterval = bundle.getInt(EXTRA_SCAN_INTERVAL, Config.LOW_SCAN_INTERVAL);
+				_scanPause = bundle.getInt(EXTRA_SCAN_PAUSE, Config.LOW_SCAN_PAUSE);
 			}
 		}
 
@@ -149,7 +145,7 @@ public class BleScanService extends Service {
 					Log.e(TAG, "start scan error: " + error);
 				}
 			});
-			_handler.postDelayed(_stopScanRunnable, SCAN_INTERVAL);
+			_handler.postDelayed(_stopScanRunnable, Config.LOW_SCAN_INTERVAL);
 		}
 	};
 
@@ -167,12 +163,12 @@ public class BleScanService extends Service {
 			_ble.stopScan(new IStatusCallback() {
 				@Override
 				public void onSuccess() {
-					_handler.postDelayed(_startScanRunnable, SCAN_PAUSE);
+					_handler.postDelayed(_startScanRunnable, Config.LOW_SCAN_PAUSE);
 				}
 
 				@Override
 				public void onError(int error) {
-					_handler.postDelayed(_startScanRunnable, SCAN_PAUSE);
+					_handler.postDelayed(_startScanRunnable, Config.LOW_SCAN_PAUSE);
 				}
 			});
 		}

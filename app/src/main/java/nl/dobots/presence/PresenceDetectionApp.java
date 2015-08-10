@@ -24,7 +24,6 @@ import java.util.Date;
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
 import nl.dobots.presence.ask.AskWrapper;
-import nl.dobots.presence.gui.MainActivity;
 import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.locations.LocationsList;
 import nl.dobots.presence.srv.BleScanService;
@@ -37,24 +36,6 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 
 	private static final String TAG = PresenceDetectionApp.class.getCanonicalName();
 
-	public static final int PRESENCE_NOTIFICATION_ID = 1010;
-
-	// NOTE: PRESENCE_UPDATE_TIMEOUT has to be smaller than PRESENCE_TIMEOUT
-	public static final long PRESENCE_UPDATE_TIMEOUT = 10 * 1000; // 30 seconds (in ms)
-//	public static final long PRESENCE_TIMEOUT = 30 * (60 * 1000); // 30 minutes (in ms)
-	public static final long PRESENCE_TIMEOUT = 1* (30 * 1000); // 30 minutes (in ms)
-
-//	private static final long WATCHDOG_INTERVAL = 5 * (60 * 1000); // 5 minutes (in ms)
-	private static final long WATCHDOG_INTERVAL = 1 * (30 * 1000); // 5 minutes (in ms)
-
-	public static final int LOW_SCAN_PAUSE = 2500; // 2.5 seconds
-	public static final int LOW_SCAN_PERIOD = 500; // 0.5 seconds
-	public static final int LOW_SCAN_EXPIRATION = 3500; // 3.5 seconds
-
-	public static final int HIGH_SCAN_PAUSE = 500; // 0.5 seconds
-	public static final int HIGH_SCAN_PERIOD = 500; // 0.5 seconds
-	public static final int HIGH_SCAN_EXPIRATION = 2000; // 2 seconds
-
 	private static PresenceDetectionApp instance = null;
 
 	private Settings _settings;
@@ -65,6 +46,8 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 
 	private boolean _currentPresence = false;
 	private String _currentLocation = "";
+	private String _currentAdditionalInfo;
+
 	private long _lastPresenceUpdateTime = 0;
 	private long _lastDetectionTime = 0;
 	private boolean _retry = false;
@@ -88,10 +71,10 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	private Runnable _watchdogRunner = new Runnable() {
 		@Override
 		public void run() {
-			if (System.currentTimeMillis() - _lastDetectionTime > PRESENCE_TIMEOUT) {
+			if (System.currentTimeMillis() - _lastDetectionTime > Config.PRESENCE_TIMEOUT) {
 				updatePresence(false, "", "");
 			}
-			_watchdogHandler.postDelayed(_watchdogRunner, WATCHDOG_INTERVAL);
+			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 		}
 	};
 
@@ -180,7 +163,7 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	public void resumeDetection() {
 		if (_detectionPaused) {
 			_detectionPaused = false;
-			_watchdogHandler.postDelayed(_watchdogRunner, WATCHDOG_INTERVAL);
+			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 		}
 	}
 
@@ -199,7 +182,7 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 			// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
 			// otherwise we have to move it inside the find location
 			!_updatingPresence &&
-			System.currentTimeMillis() - _lastPresenceUpdateTime > PRESENCE_UPDATE_TIMEOUT)
+			System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
 		{
 			Location location;
 			// loop over all devices in the list and find ...
@@ -236,10 +219,13 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		return expirationDate;
 	}
 
+	private boolean _scanningBeforeManual = false;
+
 	public void setManualPresence(boolean present, long expirationTime) {
 		expirationDate = new Date(new Date().getTime() + expirationTime);
 		pauseDetection();
 		if (_bound) {
+			_scanningBeforeManual = _service.isScanning();
 			_service.stopIntervalScan();
 		}
 		_watchdogHandler.postDelayed(new Runnable() {
@@ -252,9 +238,12 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	}
 
 	public void setAutoPresence() {
+		expirationDate = null;
 		resumeDetection();
 		if (_bound) {
-			_service.startIntervalScan();
+			if (_scanningBeforeManual) {
+				_service.startIntervalScan();
+			}
 		}
 	}
 
@@ -291,7 +280,7 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 								.setContentText("Can't login, please check your internet!")
 								.setDefaults(Notification.DEFAULT_SOUND)
 								.setLights(Color.BLUE, 500, 1000);
-						notificationManager.notify(PRESENCE_NOTIFICATION_ID, _builder.build());
+						notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
 						Toast.makeText(this, "Can't login, please check your internet!", Toast.LENGTH_LONG).show();
 
 						_updateWaiting = true;
@@ -307,12 +296,13 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 					_ask.updatePresence(present, location);
 					_currentLocation = location;
 					_currentPresence = present;
+					_currentAdditionalInfo = additionalInfo;
 
 					notifyPresenceUpdate(present, location, additionalInfo);
 				}
 				_updatingPresence = false;
 				_lastPresenceUpdateTime = System.currentTimeMillis();
-				notificationManager.cancel(PRESENCE_NOTIFICATION_ID);
+				notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
 				_retry = false;
 			} catch (RetrofitError e) {
 				e.printStackTrace();
@@ -320,6 +310,8 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 				if (!_retry) {
 					updatePresence(present, location, additionalInfo);
 					_retry = true;
+				} else {
+					_updatingPresence = false;
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -345,6 +337,17 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		}
 	}
 
+	public boolean getCurrentPresence() {
+		return _currentPresence;
+	}
+
+	public String getCurrentLocation() {
+		return _currentLocation;
+	}
+
+	public String getCurrentAdditionalInfo() {
+		return _currentAdditionalInfo;
+	}
 //	public void setHighFrequencyDetection(boolean enable) {
 //		if (_highFrequencyDetection == enable) return;
 //
