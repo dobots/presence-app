@@ -19,6 +19,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
@@ -170,13 +171,17 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	}
 
 	public void pauseDetection() {
-		_detectionPaused = true;
-		_watchdogHandler.removeCallbacksAndMessages(null);
+		if (!_detectionPaused) {
+			_detectionPaused = true;
+			_watchdogHandler.removeCallbacksAndMessages(null);
+		}
 	}
 
 	public void resumeDetection() {
-		_detectionPaused = false;
-		_watchdogHandler.postDelayed(_watchdogRunner, WATCHDOG_INTERVAL);
+		if (_detectionPaused) {
+			_detectionPaused = false;
+			_watchdogHandler.postDelayed(_watchdogRunner, WATCHDOG_INTERVAL);
+		}
 	}
 
 	@Override
@@ -223,6 +228,34 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 			}
 		}
 		return null;
+	}
+
+	private Date expirationDate;
+
+	public Date getExpirationDate() {
+		return expirationDate;
+	}
+
+	public void setManualPresence(boolean present, long expirationTime) {
+		expirationDate = new Date(new Date().getTime() + expirationTime);
+		pauseDetection();
+		if (_bound) {
+			_service.stopIntervalScan();
+		}
+		_watchdogHandler.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				setAutoPresence();
+			}
+		}, expirationTime);
+		updatePresence(present, "Manual", "");
+	}
+
+	public void setAutoPresence() {
+		resumeDetection();
+		if (_bound) {
+			_service.startIntervalScan();
+		}
 	}
 
 	private void updatePresence(boolean present, String location, String additionalInfo) {

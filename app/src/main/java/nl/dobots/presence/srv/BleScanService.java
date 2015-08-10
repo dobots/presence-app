@@ -189,26 +189,29 @@ public class BleScanService extends Service {
 		if (!_initialized) {
 			_ble.init(this, _connectionCallback);
 		}
-
-		Log.i(TAG, "Starting interval scan");
-		_scanning = true;
-		_handler.post(_startScanRunnable);
+		if (!_scanning) {
+			Log.i(TAG, "Starting interval scan");
+			_scanning = true;
+			_handler.post(_startScanRunnable);
+		}
 	}
 
 	public void stopIntervalScan() {
-		_handler.removeCallbacksAndMessages(null);
-		_scanning = false;
-		_ble.stopScan(new IStatusCallback() {
-			@Override
-			public void onSuccess() {
-				Log.i(TAG, "Stopped interval scan");
-			}
+		if (_scanning) {
+			_handler.removeCallbacksAndMessages(null);
+			_scanning = false;
+			_ble.stopScan(new IStatusCallback() {
+				@Override
+				public void onSuccess() {
+					Log.i(TAG, "Stopped interval scan");
+				}
 
-			@Override
-			public void onError(int error) {
-				Log.e(TAG, "Failed to stop interval scan: " + error);
-			}
-		});
+				@Override
+				public void onError(int error) {
+					Log.e(TAG, "Failed to stop interval scan: " + error);
+				}
+			});
+		}
 	}
 
 	public boolean isScanning() {

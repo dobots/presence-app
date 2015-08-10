@@ -1,22 +1,31 @@
 package nl.dobots.presence.gui;
 
+import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
@@ -45,6 +54,11 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 	private boolean _bound;
 	private TextView _txtCurrentPresence;
 	private TextView _txtCurrentLocation;
+	private LinearLayout _layExpirationTime;
+	private TextView _txtRemainingExpirationTime;
+
+	private Handler _uiHandler = new Handler();
+	private Handler _handler;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +81,11 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 //
 //			Toast.makeText(this, "Service already running ...", Toast.LENGTH_LONG);
 //		}
+
+
+		HandlerThread handlerThread = new HandlerThread("Watchdog");
+		handlerThread.start();
+		_handler = new Handler(handlerThread.getLooper());
 
 		if (getIntent().getAction() == "android.intent.action.MAIN") {
 
@@ -181,6 +200,10 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		_txtCurrentLocation = (TextView) findViewById(R.id.txtLocation);
 		_txtCurrentLocation.setVisibility(View.GONE);
 
+		_layExpirationTime = (LinearLayout) findViewById(R.id.layExpirationTime);
+		_layExpirationTime.setVisibility(View.INVISIBLE);
+		_txtRemainingExpirationTime = (TextView) findViewById(R.id.txtRemainingExpirationTime);
+
 	}
 
 	@Override
@@ -221,6 +244,94 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			}
 		}
 	}
+
+	public void autoPresence(View view) {
+		stopExpirationUpdate();
+		PresenceDetectionApp.getInstance().setAutoPresence();
+	}
+
+	public void manualPresent(View view) {
+		manualPresence(true);
+	}
+
+	public void manualNotPresent(View view) {
+		manualPresence(false);
+	}
+
+	private void manualPresence(final boolean present) {
+
+		String[] expirationTimesDisplay = { "1 min", "15 min", "1 h", "2 h", "4 h", "8 h"};
+		final long[] expirationTimes = { 1, 15, 60, 120, 240, 480}; // in minutes
+
+		final ArrayAdapter<String> adp = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, expirationTimesDisplay);
+		final Spinner sp = new Spinner(this);
+		sp.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+		sp.setAdapter(adp);
+
+		final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle("Set manual presence");
+		builder.setMessage("You can override your presence manually. Choose an expiration time and confirm. " +
+				"Once the selected time expires, automatic presence control will continue.");
+		builder.setView(sp);
+		builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+
+				final long expirationTime = expirationTimes[sp.getSelectedItemPosition()] * 60 * 1000; // in ms
+
+				_handler.post(new Runnable() {
+					@Override
+					public void run() {
+						PresenceDetectionApp.getInstance().setManualPresence(present, expirationTime);
+					}
+				});
+
+				startExpirationUpdate();
+			}
+		});
+		builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface dialog, int id) {
+				/* nothing to do */
+			}
+		});
+		builder.show();
+	}
+
+	private void startExpirationUpdate() {
+		_layExpirationTime.setVisibility(View.VISIBLE);
+
+		Runnable expirationUpdater = new Runnable() {
+			@Override
+			public void run() {
+				Date expirationDate = PresenceDetectionApp.getInstance().getExpirationDate();
+				Date now = new Date();
+				if (now.after(expirationDate)) {
+					_layExpirationTime.setVisibility(View.INVISIBLE);
+					return;
+				} else {
+					long diff = expirationDate.getTime() - now.getTime();
+					int hours = (int) (diff / (60 * 60 * 1000));
+					int mins = (int) (diff / (60 * 1000)) % 60;
+					int secs = (int) (diff / 1000) % 60;
+					if (hours > 0) {
+						_txtRemainingExpirationTime.setText(String.format("%1d h %2d m %2d s", hours, mins, secs));
+					} else if (mins > 0) {
+						_txtRemainingExpirationTime.setText(String.format("    %2d m %2d s", mins, secs));
+					} else {
+						_txtRemainingExpirationTime.setText(String.format("         %2d s", secs));
+					}
+				}
+				_uiHandler.postDelayed(this, 500);
+			}
+		};
+
+		_uiHandler.postDelayed(expirationUpdater, 500);
+	}
+
+	private void stopExpirationUpdate() {
+		_uiHandler.removeCallbacksAndMessages(null);
+		_layExpirationTime.setVisibility(View.INVISIBLE);
+	}
+
 
 //	BleDeviceMap _deviceMap = new BleDeviceMap();
 
@@ -276,4 +387,5 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			}
 		});
 	}
+
 }
