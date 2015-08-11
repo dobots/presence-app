@@ -43,7 +43,8 @@
 			android:text="Low Frequency Scanning"
 			android:layout_marginTop="16dp"
 			android:layout_below="@+id/lblMessage"
-			android:layout_centerHorizontal="true"/>
+			android:layout_centerHorizontal="true"
+			android:visibility="gone"/>
 
 		<TextView
 			android:id="@+id/lblPresence"
@@ -172,48 +173,6 @@
 
 		</LinearLayout>
 
-		<LinearLayout
-			android:id="@+id/layDebug"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_centerHorizontal="true"
-			android:layout_marginTop="30dp"
-			android:layout_below="@+id/lblPresence"
-			android:visibility="gone"
-			>
-
-			<TextView
-				android:id="@+id/txtCurrentDistance"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_below="@+id/txtFreqScanning"
-				android:layout_marginTop="20dp"
-				android:textStyle="bold"
-				android:layout_alignParentStart="true"
-				/>
-
-			<TextView
-				android:id="@+id/txtCurrentDistance2"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_below="@+id/txtCurrentDistance"
-				android:layout_marginTop="20dp"
-				android:textStyle="bold"
-				android:layout_alignParentStart="true"
-				/>
-
-			<TextView
-				android:id="@+id/txtCurrentDistance3"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_below="@+id/txtCurrentDistance2"
-				android:layout_marginTop="20dp"
-				android:textStyle="bold"
-				android:layout_alignParentStart="true"
-				/>
-
-		</LinearLayout>
-
 		<Button
 			android:id="@+id/btnToggleScan"
 			android:text="Stop"
@@ -226,6 +185,43 @@
 			android:layout_centerHorizontal="true"
 			android:onClick="toggleScan"
 			/>
+
+		<LinearLayout
+			android:id="@+id/layDebug"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_centerHorizontal="true"
+			android:layout_marginTop="20dp"
+			android:layout_below="@+id/btnToggleScan"
+			android:orientation="vertical"
+			android:visibility="visible"
+			>
+
+			<TextView
+				android:id="@+id/txtCurrentDistance"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="20dp"
+				android:textStyle="bold"
+				/>
+
+			<TextView
+				android:id="@+id/txtCurrentDistance2"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="20dp"
+				android:textStyle="bold"
+				/>
+
+			<TextView
+				android:id="@+id/txtCurrentDistance3"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="20dp"
+				android:textStyle="bold"
+				/>
+
+		</LinearLayout>
 
 
 	</RelativeLayout>

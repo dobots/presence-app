@@ -25,8 +25,8 @@ import nl.dobots.bluenet.extended.structs.BleDeviceMap;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.R;
-import nl.dobots.presence.ScanDeviceListener;
-import nl.dobots.presence.Settings;
+import nl.dobots.presence.srv.ScanDeviceListener;
+import nl.dobots.presence.cfg.Settings;
 import nl.dobots.presence.srv.BleScanService;
 
 

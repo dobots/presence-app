@@ -13,7 +13,7 @@ import android.widget.TextView;
 
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
-import nl.dobots.presence.Settings;
+import nl.dobots.presence.cfg.Settings;
 import nl.dobots.presence.ask.AskWrapper;
 
 

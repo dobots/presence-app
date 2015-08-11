@@ -1,21 +1,39 @@
 package nl.dobots.presence.ask;
 
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+
 import java.util.Map;
 
 import nl.dobots.presence.ask.rest.RestApi;
+import retrofit.RetrofitError;
 
 /**
  * Created by dominik on 4-8-15.
  */
 public class AskWrapper {
 
+	public interface StatusCallback {
+		void onSuccess();
+		void onError();
+	}
+
 	private static AskWrapper instance = null;
 	private boolean _loggedIn;
 
 	private RestApi _restApi;
 
+	private Handler _networkHandler;
+//	private Boolean _presence;
+
 	private AskWrapper() {
 		_restApi = RestApi.getInstance();
+
+		HandlerThread networkThread = new HandlerThread("NetworkHandler");
+		networkThread.start();
+		_networkHandler = new Handler(networkThread.getLooper());
+
 	}
 
 	public static AskWrapper getInstance() {
@@ -29,8 +47,19 @@ public class AskWrapper {
 		return !username.isEmpty() && !password.isEmpty();
 	}
 
-	public boolean login(String username, String password, String server) {
+	public void login(final String username, final String password, final String server, final StatusCallback callback) {
 //		if (isLoggedIn()) return true;
+
+		// can't execute network operations in the main thread, so we have to delegate
+		// the call to the network handler
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					login(username, password, server, callback);
+				}
+			});
+		}
 
 		_loggedIn = false;
 		if(isLoginCredentialsValid(username, password)) {
@@ -39,13 +68,14 @@ public class AskWrapper {
 				Map<String, Object> presence = _restApi.getStandByApi().getPresence(false);
 				if (presence != null) {
 					_loggedIn = true;
-					return true;
+					callback.onSuccess();
+					return;
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		}
-		return false;
+		callback.onError();
 	}
 
 	public boolean isLoggedIn() {
@@ -56,8 +86,71 @@ public class AskWrapper {
 		_loggedIn = loggedIn;
 	}
 
-	public void updatePresence(boolean present, String location) {
-		_restApi.getStandByApi().setLocationPresenceManually(present, location);
+	public void updatePresence(final boolean present, final String location, final StatusCallback callback) {
+
+		// can't execute network operations in the main thread, so we have to delegate
+		// the call to the network handler
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					updatePresence(present, location, callback);
+				}
+			});
+		}
+
+		try {
+			_restApi.getStandByApi().setLocationPresenceManually(present, location);
+			callback.onSuccess();
+		} catch (RetrofitError e) {
+			e.printStackTrace();
+			callback.onError();
+		}
 	}
+
+//	Boolean _presence;
+//	String _location;
+//
+//	public boolean getCurrentPresence(Boolean presence, String location) {
+//		// can't execute network operations in the main thread, so we have to delegate
+//		// the call to the network handler
+//		if (Looper.myLooper() == Looper.getMainLooper()) {
+//			final Object lock = new Object();
+//
+//			_networkHandler.post(new Runnable() {
+//				@Override
+//				public void run() {
+//					synchronized (lock) {
+//						getCurrentPresence(_presence, _location);
+//						lock.notify();
+//					}
+//				}
+//			});
+//
+//			try {
+//				synchronized (lock) {
+//					lock.wait();
+//				}
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//				return false;
+//			}
+//			presence = _presence;
+//			location = _location;
+//			return true;
+//		}
+//
+//		try {
+//			Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
+//			if (presenceObj != null) {
+//				presence = (Boolean) presenceObj.get("present");
+//				location = (String) presenceObj.get("location");
+//				return true;
+//			}
+//		} catch (RetrofitError e) {
+//			e.printStackTrace();
+//		}
+//		return false;
+//	}
 
 }

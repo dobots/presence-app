@@ -1,9 +1,7 @@
-package nl.dobots.presence;
+package nl.dobots.presence.cfg;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import java.util.ArrayList;
 
 import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.locations.LocationsDbAdapter;
@@ -15,16 +13,6 @@ import nl.dobots.presence.locations.LocationsList;
 public class Settings {
 
 	private static final String SETTING_FILE = "general_settings";
-
-	// default values
-	private static final String USERNAME_DEFAULT = "";
-	private static final String PASSWORD_DEFAULT = "";
-	private static final String SERVER_DEFAULT = "http://dev.ask-cs.com";
-
-	private static final String BEACON_ADDRESS_DEFAULT = null;
-	private static final float DETECTION_DISTANCE_DEFAULT = 1;
-	private static final float HIGH_FREQUENCY_DISTANCE_DEFAULT = 6;
-	private static final float LOW_FREQUENCY_DISTANCE_DEFAULT = 10;
 
 	private static Settings INSTANCE = null;
 
@@ -125,9 +113,9 @@ public class Settings {
 	public void clearSettings(Context context){
 		SharedPreferences sharedPreferences = context.getSharedPreferences(SETTING_FILE, 0);
 		sharedPreferences.edit().clear().commit();
-		_detectionDistance = DETECTION_DISTANCE_DEFAULT;
-		_highFrequencyDistance = HIGH_FREQUENCY_DISTANCE_DEFAULT;
-		_lowFrequencyDistance = LOW_FREQUENCY_DISTANCE_DEFAULT;
+		_detectionDistance = Config.DETECTION_DISTANCE_DEFAULT;
+		_highFrequencyDistance = Config.HIGH_FREQUENCY_DISTANCE_DEFAULT;
+		_lowFrequencyDistance = Config.LOW_FREQUENCY_DISTANCE_DEFAULT;
 
 		clearPersistentLocations(context);
 		_locationsList.clear();
@@ -135,12 +123,12 @@ public class Settings {
 
 	public void readPersistentStorage(Context context) {
 		SharedPreferences sharedPreferences = context.getSharedPreferences(SETTING_FILE, 0);
-		_detectionDistance = sharedPreferences.getFloat("detectionDistanceKey", DETECTION_DISTANCE_DEFAULT);
-		_lowFrequencyDistance = sharedPreferences.getFloat("lowFrequencyDistanceKey", LOW_FREQUENCY_DISTANCE_DEFAULT);
-		_highFrequencyDistance = sharedPreferences.getFloat("highFrequencyDistanceKey", HIGH_FREQUENCY_DISTANCE_DEFAULT);
-		_username = sharedPreferences.getString("usernameKey", USERNAME_DEFAULT);
-		_password = sharedPreferences.getString("passwordKey", PASSWORD_DEFAULT);
-		_server = sharedPreferences.getString("serverKey", SERVER_DEFAULT);
+		_detectionDistance = sharedPreferences.getFloat("detectionDistanceKey", Config.DETECTION_DISTANCE_DEFAULT);
+		_lowFrequencyDistance = sharedPreferences.getFloat("lowFrequencyDistanceKey", Config.LOW_FREQUENCY_DISTANCE_DEFAULT);
+		_highFrequencyDistance = sharedPreferences.getFloat("highFrequencyDistanceKey", Config.HIGH_FREQUENCY_DISTANCE_DEFAULT);
+		_username = sharedPreferences.getString("usernameKey", Config.USERNAME_DEFAULT);
+		_password = sharedPreferences.getString("passwordKey", Config.PASSWORD_DEFAULT);
+		_server = sharedPreferences.getString("serverKey", Config.SERVER_DEFAULT);
 	}
 
 	public LocationsDbAdapter getDbAdapter(Context context) {

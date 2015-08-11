@@ -5,6 +5,8 @@ package nl.dobots.presence;
  */
 public interface PresenceUpdateListener {
 
+	// inform listeners if a change in presence was detected, either present <-> non present
+	// or a change in location
 	void onPresenceUpdate(boolean present, String location, String additionalInfo);
 
 }

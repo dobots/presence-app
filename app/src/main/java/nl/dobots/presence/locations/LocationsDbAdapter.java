@@ -8,10 +8,10 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
+import nl.dobots.presence.cfg.Config;
 
 /**
  * Created by dominik on 6-8-15.
@@ -23,11 +23,6 @@ public class LocationsDbAdapter {
 	///////////////////////////////////////////////////////////////////////////////////////////
 
 	private static final String TAG = LocationsDbAdapter.class.getCanonicalName();
-
-	// database version, defines form of entries. increase if data changes
-	public static final int DATABASE_VERSION = 1;
-	// filename of the database
-	public static final String DATABASE_NAME = "locations.db";
 
 	// key names of the database fields
 	public static final String KEY_ADDRESS = "address";
@@ -65,7 +60,7 @@ public class LocationsDbAdapter {
 
 		// default constructor
 		DatabaseHelper(Context context) {
-			super(context, DATABASE_NAME, null, DATABASE_VERSION);
+			super(context, Config.DATABASE_NAME, null, Config.DATABASE_VERSION);
 		}
 
 		// called when database should be created

@@ -1,12 +1,18 @@
 package nl.dobots.presence.srv;
 
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -15,10 +21,12 @@ import nl.dobots.bluenet.BleDeviceFilter;
 import nl.dobots.bluenet.callbacks.IBleDeviceCallback;
 import nl.dobots.bluenet.callbacks.IStatusCallback;
 import nl.dobots.bluenet.extended.BleExt;
+import nl.dobots.bluenet.extended.BleExtTypes;
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
-import nl.dobots.presence.Config;
-import nl.dobots.presence.ScanDeviceListener;
+import nl.dobots.presence.R;
+import nl.dobots.presence.cfg.Config;
+import nl.dobots.presence.gui.MainActivity;
 
 public class BleScanService extends Service {
 
@@ -29,7 +37,10 @@ public class BleScanService extends Service {
 
 	private static BleScanService INSTANCE;
 
-	private ArrayList<ScanDeviceListener> _listenerList = new ArrayList<>();
+	private ArrayList<ScanDeviceListener> _scanDeviceListeners = new ArrayList<>();
+	private ArrayList<IntervalScanListener> _intervalScanListeners = new ArrayList<>();
+
+	private NotificationManager _notificationManager;
 
 	public class BleScanBinder extends Binder {
 
@@ -59,12 +70,36 @@ public class BleScanService extends Service {
 		public void onSuccess() {
 			Log.d(TAG, "successfully initialized BLE");
 			_initialized = true;
+			if (_scanning) {
+				_handler.removeCallbacksAndMessages(null);
+				_handler.post(_startScanRunnable);
+			}
+			_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
 		}
 
 		@Override
 		public void onError(int error) {
 			Log.e(TAG, "Ble Error: " + error);
 			_initialized = false;
+
+			if (error == BleExtTypes.ERROR_BLUETOOTH_TURNED_OFF) {
+
+				Intent contentIntent = new Intent(BleScanService.this, MainActivity.class);
+				PendingIntent piContent = PendingIntent.getActivity(BleScanService.this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+				Intent btEnableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+				PendingIntent piBtEnable = PendingIntent.getActivity(BleScanService.this, 0, btEnableIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+				NotificationCompat.Builder builder = new NotificationCompat.Builder(BleScanService.this)
+						.setSmallIcon(R.mipmap.ic_launcher)
+						.setContentTitle("Presence Detection Error")
+						.setContentText("Can't detect presence without BLE!")
+						.addAction(android.R.drawable.ic_menu_manage, "Enable Bluetooth", piBtEnable)
+						.setContentIntent(piContent)
+						.setDefaults(Notification.DEFAULT_SOUND)
+						.setLights(Color.BLUE, 500, 1000);
+				_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, builder.build());
+			}
 		}
 	};
 
@@ -73,6 +108,9 @@ public class BleScanService extends Service {
 		super.onCreate();
 
 		INSTANCE = this;
+
+		_notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
 		_ble = new BleExt();
 		_ble.init(this, _connectionCallback);
 		_ble.setScanFilter(BleDeviceFilter.doBeacon);
@@ -80,6 +118,7 @@ public class BleScanService extends Service {
 		HandlerThread handlerThread = new HandlerThread("BleScanService");
 		handlerThread.start();
 		_handler = new Handler(handlerThread.getLooper());
+
 	}
 
 	@Override
@@ -145,15 +184,14 @@ public class BleScanService extends Service {
 					Log.e(TAG, "start scan error: " + error);
 				}
 			});
+			onIntervalScanStart();
 			_handler.postDelayed(_stopScanRunnable, Config.LOW_SCAN_INTERVAL);
 		}
 	};
 
 	private void onDeviceScanned(BleDevice device) {
 		Log.d(TAG, "scanned device: " + device.getName() + " " + device.getRssi());
-		for (ScanDeviceListener listener : _listenerList) {
-			listener.onDeviceScanned(device);
-		}
+		notifyScanDeviceListeners(device);
 	}
 
 	private Runnable _stopScanRunnable = new Runnable() {
@@ -163,6 +201,7 @@ public class BleScanService extends Service {
 			_ble.stopScan(new IStatusCallback() {
 				@Override
 				public void onSuccess() {
+					onIntervalScanEnd();
 					_handler.postDelayed(_startScanRunnable, Config.LOW_SCAN_PAUSE);
 				}
 
@@ -214,15 +253,45 @@ public class BleScanService extends Service {
 		return _scanning;
 	}
 
+	private void notifyScanDeviceListeners(BleDevice device) {
+		for (ScanDeviceListener listener : _scanDeviceListeners) {
+			listener.onDeviceScanned(device);
+		}
+	}
+
 	public void registerScanDeviceListener(ScanDeviceListener listener) {
-		if (_listenerList.indexOf(listener) == -1) {
-			_listenerList.add(listener);
+		if (_scanDeviceListeners.indexOf(listener) == -1) {
+			_scanDeviceListeners.add(listener);
 		}
 	}
 
 	public void unregisterScanDeviceListener(ScanDeviceListener listener) {
-		if (_listenerList.indexOf(listener) != -1) {
-			_listenerList.remove(listener);
+		if (_scanDeviceListeners.indexOf(listener) != -1) {
+			_scanDeviceListeners.remove(listener);
+		}
+	}
+
+	private void onIntervalScanStart() {
+		for (IntervalScanListener listener : _intervalScanListeners) {
+			listener.onScanStart();
+		}
+	}
+
+	private void onIntervalScanEnd() {
+		for (IntervalScanListener listener : _intervalScanListeners) {
+			listener.onScanEnd();
+		}
+	}
+
+	public void registerIntervalScanListener(IntervalScanListener listener) {
+		if (_intervalScanListeners.indexOf(listener) == -1) {
+			_intervalScanListeners.add(listener);
+		}
+	}
+
+	public void unregisterIntervalScanListener(IntervalScanListener listener) {
+		if (_intervalScanListeners.indexOf(listener) != -1) {
+			_intervalScanListeners.remove(listener);
 		}
 	}
 

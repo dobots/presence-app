@@ -9,7 +9,6 @@ import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -30,13 +29,13 @@ import java.util.Date;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
-import nl.dobots.presence.Config;
+import nl.dobots.presence.cfg.Config;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.PresenceUpdateListener;
 import nl.dobots.presence.srv.BleScanService;
 import nl.dobots.presence.R;
-import nl.dobots.presence.ScanDeviceListener;
-import nl.dobots.presence.Settings;
+import nl.dobots.presence.srv.ScanDeviceListener;
+import nl.dobots.presence.cfg.Settings;
 import nl.dobots.presence.ask.AskWrapper;
 
 public class MainActivity extends ActionBarActivity implements ScanDeviceListener, PresenceUpdateListener {
@@ -62,16 +61,17 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 	private ImageView _btnExpandManualPresence;
 
 	private Handler _uiHandler = new Handler();
-	private Handler _networkHandler;
 
 	private boolean _serviceBound;
 
 	private boolean _scanningStateChanged = true;
 	private boolean _presenceChanged = true;
 
-	private boolean _currentPresence;
+	private Boolean _currentPresence;
 	private String _currentLocation;
 	private String _currentAdditionalInfo;
+
+	private boolean expandedManualView = false;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -81,25 +81,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		setTitle(R.string.title_activity_main);
 
 		_settings = Settings.getInstance();
-
 		_ask = AskWrapper.getInstance();
-
-//		if (!Utils.isServiceRunning(this, "BleScanService")) {
-//
-//			Intent startServiceIntent = new Intent(this, BleScanService.class);
-//			this.startService(startServiceIntent);
-//
-//			Toast.makeText(this, "Starting service...", Toast.LENGTH_LONG);
-//		} else {
-//
-//			Toast.makeText(this, "Service already running ...", Toast.LENGTH_LONG);
-//		}
-
-
-		HandlerThread handlerThread = new HandlerThread("Watchdog");
-		handlerThread.start();
-		_networkHandler = new Handler(handlerThread.getLooper());
-
 		_app = PresenceDetectionApp.getInstance();
 
 		initUI();
@@ -109,8 +91,10 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		_currentLocation = _app.getCurrentLocation();
 		_currentAdditionalInfo = _app.getCurrentAdditionalInfo();
 
-		if (_app.getExpirationDate() != null) {
-			startExpirationUpdate();
+		// check if manual override is running ..
+		if (_app.getManualExpirationDate() != null) {
+			// .. if so, start UI update
+			startManualExpirationUpdate();
 		}
 
 		// connect to service
@@ -120,24 +104,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		// start UI updater
 		_uiHandler.postDelayed(_uiUpdateRunnable, Config.UI_UPDATE_INTERVAL);
 
-
-
-
-//		if (getIntent().getAction() == "android.intent.action.MAIN") {
-//
-//			initUI();
-//
-//			Intent intent = new Intent(this, BleScanService.class);
-//			bindService(intent, _connection, Context.BIND_AUTO_CREATE);
-//
-//		} else {
-////
-////			Intent startServiceIntent = new Intent(this, BleScanService.class);
-////			this.startService(startServiceIntent);
-//
-//			finish();
-//		}
-
+		// register for presence updates
 		_app.registerPresenceUpdateListener(this);
 	}
 
@@ -148,7 +115,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		if (_serviceBound) {
 			_service.registerScanDeviceListener(MainActivity.this);
 		}
-		PresenceDetectionApp.getInstance().resumeDetection();
+		_app.resumeDetection();
 
 		// check if login information is present, otherwise ..
 		if (!_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword())) {
@@ -176,7 +143,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		if (_serviceBound) {
 			unbindService(_connection);
 		}
-		PresenceDetectionApp.getInstance().unregisterPresenceUpdateListener(this);
+		_app.unregisterPresenceUpdateListener(this);
 	}
 
 	private ServiceConnection _connection = new ServiceConnection() {
@@ -185,14 +152,9 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			Log.i(TAG, "connected to ble scan service ...");
 			BleScanService.BleScanBinder binder = (BleScanService.BleScanBinder) service;
 			_service = binder.getService();
+			// register for scan device updates, only necessary for debug. can be removed later on
 			_service.registerScanDeviceListener(MainActivity.this);
 			_serviceBound = true;
-
-			if (_service.isScanning()) {
-				_btnToggleScan.setText("Stop");
-			} else {
-				_btnToggleScan.setText("Start");
-			}
 		}
 
 		@Override
@@ -201,15 +163,6 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			_serviceBound = false;
 		}
 	};
-
-	private void updateCurrentDistance(final String name, final double distance) {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-			_txtCurrentDistance.setText("closest beacon: " + name + " at " + String.valueOf(distance) + "m");
-			}
-		});
-	}
 
 	private void updateScanningFrequency(boolean highFrequency) {
 		if (_lastHighFrequency == highFrequency) return;
@@ -282,7 +235,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 
 	public void autoPresence(View view) {
 		stopExpirationUpdate();
-		PresenceDetectionApp.getInstance().setAutoPresence();
+		_app.setAutoPresence();
 	}
 
 	public void manualPresent(View view) {
@@ -308,16 +261,13 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface dialog, int id) {
 
-				final long expirationTime = Config.EXPIRATION_TIMES[sp.getSelectedItemPosition()] * 60 * 1000; // to ms
+				final long expirationTime = Config.EXPIRATION_TIMES[sp.getSelectedItemPosition()];
 
-				_networkHandler.post(new Runnable() {
-					@Override
-					public void run() {
-						PresenceDetectionApp.getInstance().setManualPresence(present, expirationTime);
-					}
-				});
+				Log.i(TAG, String.format("set manual override to %s for %d min", String.valueOf(present), expirationTime));
 
-				startExpirationUpdate();
+				_app.setManualPresence(present, expirationTime * 60 * 1000); // expect expiration in ms
+
+				startManualExpirationUpdate();
 			}
 		});
 		builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
@@ -328,7 +278,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		builder.show();
 	}
 
-	private void startExpirationUpdate() {
+	private void startManualExpirationUpdate() {
 		_btnToggleScan.setVisibility(View.INVISIBLE);
 		_lblOverride.setVisibility(View.GONE);
 		_layExpirationTime.setVisibility(View.VISIBLE);
@@ -345,19 +295,13 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 	}
 
 
-//	BleDeviceMap _deviceMap = new BleDeviceMap();
-
 	@Override
 	public void onDeviceScanned(BleDevice device) {
-//		device = _deviceMap.updateDevice(device);
-//		device.refresh();
 
 		if (_serviceBound) {
 			BleDeviceMap deviceMap = _service.getDeviceMap();
 			deviceMap.refresh();
 			final ArrayList<BleDevice> list = deviceMap.getDistanceSortedList();
-//		BleDevice dev = list.get(0);
-//		updateCurrentDistance(dev.getName(), dev.getDistance());
 
 			final TextView _txtCurrentDistance2 = (TextView) findViewById(R.id.txtCurrentDistance2);
 			final TextView _txtCurrentDistance3 = (TextView) findViewById(R.id.txtCurrentDistance3);
@@ -381,31 +325,12 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 
 	@Override
 	public void onPresenceUpdate(final boolean present, final String location, final String additionalInfo) {
-
 		_currentPresence = present;
 		_currentLocation = location;
 		_currentAdditionalInfo = additionalInfo;
 		_presenceChanged = true;
-
-//		runOnUiThread(new Runnable() {
-//			@Override
-//			public void run() {
-////				_txtCurrentPresence.setText(present ? "Present" : "Not Present");
-//				if (present) {
-//					_txtCurrentPresence.setText(String.format("at %s (%s m)", location, additionalInfo));
-//					_txtCurrentPresence.setTextColor(0xFF339933);
-////					_txtCurrentLocation.setVisibility(View.VISIBLE);
-////					_txtCurrentLocation.setText(String.format("%s (%.2f)", location, distance));
-//				} else {
-//					_txtCurrentPresence.setText("Not present");
-//					_txtCurrentPresence.setTextColor(Color.RED);
-////					_txtCurrentLocation.setVisibility(View.INVISIBLE);
-//				}
-//			}
-//		});
 	}
 
-	private boolean expandedManualView = false;
 	public void expandManualPresence(View view) {
 		if (!expandedManualView) {
 			_layManualControl.setVisibility(View.VISIBLE);
@@ -420,7 +345,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 	private Runnable _expirationUpdater = new Runnable() {
 		@Override
 		public void run() {
-			Date expirationDate = PresenceDetectionApp.getInstance().getExpirationDate();
+			Date expirationDate = _app.getManualExpirationDate();
 			Date now = new Date();
 			if (expirationDate == null || now.after(expirationDate)) {
 				stopExpirationUpdate();
@@ -431,14 +356,14 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 				int mins = (int) (diff / (60 * 1000)) % 60;
 				int secs = (int) (diff / 1000) % 60;
 				if (hours > 0) {
-					_txtRemainingExpirationTime.setText(String.format("%1d h %2d m %2d s", hours, mins, secs));
+					_txtRemainingExpirationTime.setText(String.format(" %1d h %2d m %2d s", hours, mins, secs));
 				} else if (mins > 0) {
-					_txtRemainingExpirationTime.setText(String.format("    %2d m %2d s", mins, secs));
+					_txtRemainingExpirationTime.setText(String.format("     %2d m %2d s", mins, secs));
 				} else {
-					_txtRemainingExpirationTime.setText(String.format("         %2d s", secs));
+					_txtRemainingExpirationTime.setText(String.format("          %2d s", secs));
 				}
 			}
-			_uiHandler.postDelayed(this, 500);
+			_uiHandler.postDelayed(this, Config.UI_UPDATE_INTERVAL);
 		}
 	};
 
@@ -454,7 +379,9 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			}
 
 			if (_presenceChanged) {
-				if (_currentPresence) {
+				if (_currentPresence == null) {
+					_txtCurrentPresence.setText("Unknown");
+				} else if (_currentPresence) {
 					_txtCurrentPresence.setText(String.format("at %s (%s m)", _currentLocation, _currentAdditionalInfo));
 					_txtCurrentPresence.setTextColor(0xFF339933);
 				} else {

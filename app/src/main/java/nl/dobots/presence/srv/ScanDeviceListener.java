@@ -1,4 +1,4 @@
-package nl.dobots.presence;
+package nl.dobots.presence.srv;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
 

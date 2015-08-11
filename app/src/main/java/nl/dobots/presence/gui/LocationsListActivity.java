@@ -7,7 +7,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,13 +15,10 @@ import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.util.ArrayList;
-
-import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.R;
-import nl.dobots.presence.Settings;
+import nl.dobots.presence.cfg.Settings;
 import nl.dobots.presence.locations.LocationsList;
 import nl.dobots.presence.utils.Utils;
 

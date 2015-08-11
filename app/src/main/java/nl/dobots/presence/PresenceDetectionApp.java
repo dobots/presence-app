@@ -3,6 +3,7 @@ package nl.dobots.presence;
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -10,10 +11,12 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
+import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
@@ -24,15 +27,22 @@ import java.util.Date;
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
 import nl.dobots.presence.ask.AskWrapper;
+import nl.dobots.presence.cfg.Config;
+import nl.dobots.presence.cfg.Settings;
+import nl.dobots.presence.gui.MainActivity;
+import nl.dobots.presence.localization.Localization;
+import nl.dobots.presence.localization.SimpleLocalization;
 import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.locations.LocationsList;
 import nl.dobots.presence.srv.BleScanService;
+import nl.dobots.presence.srv.IntervalScanListener;
+import nl.dobots.presence.srv.ScanDeviceListener;
 import retrofit.RetrofitError;
 
 /**
  * Created by dominik on 5-8-15.
  */
-public class PresenceDetectionApp extends Application implements ScanDeviceListener {
+public class PresenceDetectionApp extends Application implements IntervalScanListener {
 
 	private static final String TAG = PresenceDetectionApp.class.getCanonicalName();
 
@@ -44,12 +54,12 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	private NotificationManager notificationManager;
 	private NotificationCompat.Builder _builder;
 
-	private boolean _currentPresence = false;
+	private Boolean _currentPresence = null;
 	private String _currentLocation = "";
 	private String _currentAdditionalInfo;
 
 	private long _lastPresenceUpdateTime = 0;
-	private long _lastDetectionTime = 0;
+//	private long _lastDetectionTime = 0;
 	private boolean _retry = false;
 	private boolean _updatingPresence;
 
@@ -64,15 +74,26 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	private boolean _highFrequencyDetection;
 
 	private LocationsList _locationsList;
+	private Localization _localization;
 
 	private boolean _detectionPaused = false;
+
+//	private Handler _networkHandler;
+
+	private Date _manualExpirationDate;
+	private boolean _scanningBeforeManual = false;
+
+	private Handler _networkHandler;
 
 	private Handler _watchdogHandler;
 	private Runnable _watchdogRunner = new Runnable() {
 		@Override
 		public void run() {
-			if (System.currentTimeMillis() - _lastDetectionTime > Config.PRESENCE_TIMEOUT) {
+			if (System.currentTimeMillis() - _localization.getLastDetectionTime() > Config.PRESENCE_TIMEOUT) {
+				Log.i(TAG, String.format("Watchdog timeout. No beacon seen within %d seconds. Changing state to not present.", Config.PRESENCE_TIMEOUT));
 				updatePresence(false, "", "");
+			} else {
+				Log.i(TAG, "watchdog ok.");
 			}
 			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 		}
@@ -81,16 +102,40 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	private BroadcastReceiver _receiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
-			if (intent.getAction().equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
-				if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN) == WifiManager.WIFI_STATE_ENABLED) {
+			if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
+				if (!intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)) {
 					if (_updateWaiting) {
 						_updateWaiting = false;
-						updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
+						_watchdogHandler.postDelayed(new Runnable() {
+							@Override
+							public void run() {
+								updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
+							}
+						}, 500);
 					}
 				}
 			}
 		}
 	};
+
+//	private BroadcastReceiver _receiver = new BroadcastReceiver() {
+//		@Override
+//		public void onReceive(Context context, Intent intent) {
+//			if (intent.getAction().equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
+//				if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN) == WifiManager.WIFI_STATE_ENABLED) {
+//					if (_updateWaiting) {
+//						_updateWaiting = false;
+//						_watchdogHandler.postDelayed(new Runnable() {
+//							@Override
+//							public void run() {
+//								updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
+//							}
+//						}, 500);
+//					}
+//				}
+//			}
+//		}
+//	};
 
 	private ServiceConnection _connection = new ServiceConnection() {
 		@Override
@@ -98,7 +143,9 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 			Log.i(TAG, "connected to ble scan service ...");
 			BleScanService.BleScanBinder binder = (BleScanService.BleScanBinder) service;
 			_service = binder.getService();
-			_service.registerScanDeviceListener(PresenceDetectionApp.this);
+//			_service.registerScanDeviceListener(PresenceDetectionApp.this);
+			_service.registerIntervalScanListener(PresenceDetectionApp.this);
+			_service.startIntervalScan();
 			_bound = true;
 		}
 
@@ -121,16 +168,24 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		_settings.readPersistentLocations(getApplicationContext());
 		_locationsList = _settings.getLocationsList();
 
+		_localization = SimpleLocalization.getInstance();
+
 		_ask = AskWrapper.getInstance();
 
 		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-		HandlerThread handlerThread = new HandlerThread("Watchdog");
-		handlerThread.start();
-		_watchdogHandler = new Handler(handlerThread.getLooper());
+		HandlerThread watchdogThread = new HandlerThread("Watchdog");
+		watchdogThread.start();
+		_watchdogHandler = new Handler(watchdogThread.getLooper());
+		_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+		HandlerThread networkThread = new HandlerThread("NetworkHandler");
+		networkThread.start();
+		_networkHandler = new Handler(networkThread.getLooper());
+
+		IntentFilter filter = new IntentFilter();
+//        filter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);
+		filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(_receiver, filter);
 
 		Intent startServiceIntent = new Intent(this, BleScanService.class);
@@ -138,6 +193,17 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 
 		Intent intent = new Intent(this, BleScanService.class);
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
+
+//		if (!_ask.isLoggedIn()) {
+//			if (_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer())) {
+//				_ask.getCurrentPresence(_currentPresence, _currentLocation);
+//				if (_currentPresence != null) {
+//					notifyPresenceUpdate(_currentPresence, "", "");
+//				}
+//			}
+//		}
+
+//		BleDevice.setExpirationTime(1500);
 	}
 
 	@Override
@@ -156,19 +222,26 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	public void pauseDetection() {
 		if (!_detectionPaused) {
 			_detectionPaused = true;
-			_watchdogHandler.removeCallbacksAndMessages(null);
+			Log.i(TAG, "stop watchdog");
+			_watchdogHandler.removeCallbacks(_watchdogRunner);
 		}
 	}
 
 	public void resumeDetection() {
 		if (_detectionPaused) {
 			_detectionPaused = false;
+			Log.i(TAG, "resume watchdog");
 			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 		}
 	}
 
 	@Override
-	public void onDeviceScanned(BleDevice dev) {
+	public void onScanStart() {
+		// don't care
+	}
+
+	@Override
+	public void onScanEnd() {
 		if (_detectionPaused) return;
 
 		// refresh device, triggers calculation of average rssi and distance
@@ -179,66 +252,76 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		final ArrayList<BleDevice> devices = deviceMap.getDistanceSortedList();
 
 		if (!devices.isEmpty() &&
-			// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
-			// otherwise we have to move it inside the find location
-			!_updatingPresence &&
-			System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
+				// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
+				// otherwise we have to move it inside the find location
+				!_updatingPresence &&
+				System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
 		{
-			Location location;
-			// loop over all devices in the list and find ...
-			for (BleDevice device : devices) {
-				// ... the closest device registered with a location
-				if ((location = _locationsList.findLocation(device.getAddress())) != null) {
-//					if (!_updatingPresence && System.currentTimeMillis() - _lastPresenceUpdateTime > PRESENCE_UPDATE_TIMEOUT) {
-						double distance = device.getDistance();
-						if (distance != -1 && distance < _settings.getDetectionDistance()) {
-							Log.i(TAG, "I am in range of: " + device.getName() + "at " + device.getDistance() + " m");
-							updatePresence(true, location.getName(), String.format("%s at %.2f", device.getName(), distance));
-						}
-//					}
-					_lastDetectionTime = System.currentTimeMillis();
-					return;
-				}
+			SimpleLocalization.LocalizationResult localizationResult = SimpleLocalization.getInstance().findLocation(devices);
+
+			if (localizationResult != null) {
+				Location location = localizationResult.location;
+				BleDevice device = localizationResult.triggerDevice;
+				updatePresence(true, location.getName(),
+						String.format("%s at %.2f", device.getName(), device.getDistance()));
 			}
 		}
-
 	}
 
-	private BleDevice getClosestRegisteredDevice(ArrayList<BleDevice> devices) {
-		for (BleDevice device : devices) {
-			if (_locationsList.findLocation(device.getAddress()) != null) {
-				return device;
-			}
+//	@Override
+//	public void onDeviceScanned(BleDevice dev) {
+//		if (_detectionPaused) return;
+//
+//		// refresh device, triggers calculation of average rssi and distance
+////		device.refresh();
+//
+//		BleDeviceMap deviceMap = _service.getDeviceMap();
+//		deviceMap.refresh();
+//		final ArrayList<BleDevice> devices = deviceMap.getDistanceSortedList();
+//
+//		if (!devices.isEmpty() &&
+//			// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
+//			// otherwise we have to move it inside the find location
+//			!_updatingPresence &&
+//			System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
+//		{
+//			SimpleLocalization.LocalizationResult localizationResult = SimpleLocalization.getInstance().findLocation(devices);
+//
+//			if (localizationResult != null) {
+//				Location location = localizationResult.location;
+//				BleDevice device = localizationResult.triggerDevice;
+//				updatePresence(true, location.getName(),
+//						String.format("%s at %.2f", device.getName(), device.getDistance()));
+//			}
+//		}
+//	}
+
+
+	public Date getManualExpirationDate() {
+		return _manualExpirationDate;
+	}
+
+	private Runnable _onManualPresenceExpired = new Runnable() {
+		@Override
+		public void run() {
+			setAutoPresence();
 		}
-		return null;
-	}
-
-	private Date expirationDate;
-
-	public Date getExpirationDate() {
-		return expirationDate;
-	}
-
-	private boolean _scanningBeforeManual = false;
+	};
 
 	public void setManualPresence(boolean present, long expirationTime) {
-		expirationDate = new Date(new Date().getTime() + expirationTime);
+		_manualExpirationDate = new Date(new Date().getTime() + expirationTime);
 		pauseDetection();
 		if (_bound) {
 			_scanningBeforeManual = _service.isScanning();
 			_service.stopIntervalScan();
 		}
-		_watchdogHandler.postDelayed(new Runnable() {
-			@Override
-			public void run() {
-				setAutoPresence();
-			}
-		}, expirationTime);
+		_watchdogHandler.postDelayed(_onManualPresenceExpired, expirationTime);
 		updatePresence(present, "Manual", "");
 	}
 
 	public void setAutoPresence() {
-		expirationDate = null;
+		_manualExpirationDate = null;
+		_watchdogHandler.removeCallbacks(_onManualPresenceExpired);
 		resumeDetection();
 		if (_bound) {
 			if (_scanningBeforeManual) {
@@ -247,62 +330,125 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		}
 	}
 
-	private void updatePresence(boolean present, String location, String additionalInfo) {
+	private void onNetworkError(String error, boolean present, String location, String additionalInfo) {
+
+		Intent contentIntent = new Intent(this, MainActivity.class);
+		contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+		Intent wifiSettingsIntent = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
+//        presentIntent.putExtra("nl.dobots.presence.NOTIFICATION_ANSWER", true);
+		PendingIntent piWifiSettings = PendingIntent.getActivity(this, 0, wifiSettingsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+		_builder = new NotificationCompat.Builder(this)
+				.setSmallIcon(R.mipmap.ic_launcher)
+				.setContentTitle("Network Error")
+				.setContentText(error)
+				.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
+				.setContentIntent(piContent)
+				.setDefaults(Notification.DEFAULT_SOUND)
+				.setLights(Color.BLUE, 500, 1000);
+		notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
+		Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+
+		_ask.setLoggedIn(false);
+
+		_updateWaiting = true;
+		_updateWaitingPresence = present;
+		_updateWaitingLocation = location;
+		_updateWaitingAdditionalInfo = additionalInfo;
+
+		// just to make sure we don't get stuck
+		_updatingPresence = false;
+	}
+
+	private void updatePresence(final boolean present, final String location, final String additionalInfo) {
 
 		//we only send the new presence if it differs from the old one, to avoid surcharging the server
-		if ((_currentPresence != present) || !_currentLocation.matches(location)) {
-			_updatingPresence = true;
+		if ((_currentPresence == null) || (_currentPresence != present) || !_currentLocation.matches(location)) {
 
 			// can't execute network operations in the main thread, so we have to delegate
 			// the call to the network handler
-//		if (Looper.myLooper() == Looper.getMainLooper()) {
-//			mNetworkHandler.post(new Runnable() {
-//				@Override
-//				public void run() {
-//					updatePresence(present);
-//				}
-//			});
-//			return;
-//		}
+			if (Looper.myLooper() == Looper.getMainLooper()) {
+				_networkHandler.post(new Runnable() {
+					@Override
+					public void run() {
+						updatePresence(present, location, additionalInfo);
+					}
+				});
+				return;
+			}
+
+			_updatingPresence = true;
+
+//			// can't execute network operations in the main thread, so we have to delegate
+//			// the call to the network handler
+//			if (Looper.myLooper() == Looper.getMainLooper()) {
+//				_networkHandler.post(new Runnable() {
+//					@Override
+//					public void run() {
+//						updatePresence(present, location, additionalInfo);
+//					}
+//				});
+//				return;
+//			}
 
 			try {
 				// check if we are logged in, and do so otherwise
 				if (!_ask.isLoggedIn()) {
-					_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer());
+					_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
+							new AskWrapper.StatusCallback() {
+								@Override
+								public void onSuccess() {
+									updatePresence(present, location, additionalInfo);
+								}
 
-					// if login failed, give notification
-					if (!_ask.isLoggedIn()) {
-						Log.e(TAG, "failed to log in");
+								@Override
+								public void onError() {
+									Log.e(TAG, "failed to log in");
 
-						_builder = new NotificationCompat.Builder(this)
-								.setSmallIcon(R.mipmap.ic_launcher)
-								.setContentTitle("Presence detected")
-								.setContentText("Can't login, please check your internet!")
-								.setDefaults(Notification.DEFAULT_SOUND)
-								.setLights(Color.BLUE, 500, 1000);
-						notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
-						Toast.makeText(this, "Can't login, please check your internet!", Toast.LENGTH_LONG).show();
+									onNetworkError("Can't login, please check your internet!",
+											present, location, additionalInfo);
+								}
+							}
+					);
+					return;
 
-						_updateWaiting = true;
-						_updateWaitingPresence = present;
-						_updateWaitingLocation = location;
-
-						return;
-					}
+//					// if login failed, give notification
+//					if (!_ask.isLoggedIn()) {
+//						Log.e(TAG, "failed to log in");
+//
+//						onNetworkError("Can't login, please check your internet!",
+//								present, location, additionalInfo);
+//						return;
+//					}
 				}
 				// make sure we are now logged in
-				if (_ask.isLoggedIn()) {
-					Log.i(TAG, "Update presence to: " + present + " at " + location);
-					_ask.updatePresence(present, location);
-					_currentLocation = location;
-					_currentPresence = present;
-					_currentAdditionalInfo = additionalInfo;
+				Log.i(TAG, "Update presence to: " + present + " at " + location);
 
-					notifyPresenceUpdate(present, location, additionalInfo);
-				}
+				_ask.updatePresence(present, location,
+						new AskWrapper.StatusCallback() {
+							@Override
+							public void onSuccess() {
+								_currentLocation = location;
+								_currentPresence = present;
+								_currentAdditionalInfo = additionalInfo;
+
+								notifyPresenceUpdate(present, location, additionalInfo);
+								notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
+							}
+
+							@Override
+							public void onError() {
+								Log.e(TAG, "failed to update presence");
+								onNetworkError("Failed to update presence, please check your internet!",
+										present, location, additionalInfo);
+							}
+						}
+				);
+
 				_updatingPresence = false;
 				_lastPresenceUpdateTime = System.currentTimeMillis();
-				notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
 				_retry = false;
 			} catch (RetrofitError e) {
 				e.printStackTrace();
@@ -337,7 +483,8 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 		}
 	}
 
-	public boolean getCurrentPresence() {
+	public Boolean getCurrentPresence() {
+//		if (_currentPresence == null) return false;
 		return _currentPresence;
 	}
 
@@ -348,6 +495,7 @@ public class PresenceDetectionApp extends Application implements ScanDeviceListe
 	public String getCurrentAdditionalInfo() {
 		return _currentAdditionalInfo;
 	}
+
 //	public void setHighFrequencyDetection(boolean enable) {
 //		if (_highFrequencyDetection == enable) return;
 //
