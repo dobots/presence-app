@@ -20,7 +20,6 @@
 		android:theme="@style/AppTheme" >
 		<activity
 			android:name=".gui.MainActivity"
-			android:icon="@mipmap/ic_launcher"
 			android:label="@string/app_name" >
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
@@ -48,12 +47,15 @@
 			android:name=".gui.EditLocationActivity"
 			android:label="@string/title_activity_edit_location" >
 		</activity>
+		<activity
+			android:name="br.com.thinkti.android.filechooser.FileChooser"
+			android:label="@string/title_activity_file_chooser" >
+		</activity>
 
 		<service
 			android:name=".srv.BleScanService"
 			android:enabled="true"
 			android:exported="true"
-			android:icon="@mipmap/ic_launcher"
 			android:label="@string/app_name" >
 		</service>
 
