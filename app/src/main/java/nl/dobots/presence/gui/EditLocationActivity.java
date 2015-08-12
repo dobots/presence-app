@@ -4,9 +4,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
+import android.text.method.CharacterPickerDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,22 +23,25 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
+import nl.dobots.bluenet.extended.structs.BleDeviceList;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
 import nl.dobots.presence.PresenceDetectionApp;
-import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.R;
-import nl.dobots.presence.srv.ScanDeviceListener;
 import nl.dobots.presence.cfg.Settings;
+import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.srv.BleScanService;
+import nl.dobots.presence.srv.ScanDeviceListener;
 
 
-public class AddNewLocationActivity extends ActionBarActivity implements ScanDeviceListener {
+public class EditLocationActivity extends ActionBarActivity implements ScanDeviceListener {
 
-	private static final String TAG = AddNewLocationActivity.class.getCanonicalName();
+	private static final String TAG = EditLocationActivity.class.getCanonicalName();
 
-	private ScamDeviceAdapter _adapter;
+	private ScannedDeviceAdapter _adapter;
 	private BleDeviceMap _deviceMap;
-	private ArrayList<BleDevice> _deviceList;
+//	private BleDeviceList _deviceList;
+
+	private Settings _settings;
 
 	private BleScanService _service;
 	private boolean _bound;
@@ -45,23 +49,41 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 
 	private boolean _scanning;
 
+	private int _oldScanInterval;
+	private int _oldScanPause;
+	private boolean _oldIsScanning;
+
 	private ListView _lvScannedBeacons;
 	private EditText _edtLocationName;
 	private Button _btnScanLocationBeacons;
+	private Button _btnStoreLocation;
+	private Location _location;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_add_location);
 
+
+		String locationName = getIntent().getStringExtra("location");
+
+		_settings = Settings.getInstance();
+
+		_location = _settings.getLocationsList().getLocation(locationName);
+		BleDeviceList _deviceList = _location.getBeaconsList();
+
 		_deviceMap = new BleDeviceMap();
-		_deviceList = new ArrayList<>();
+		for (BleDevice device : _deviceList) {
+			_deviceMap.updateDevice(device);
+		}
 
-		_selectedDevices = new ArrayList<>();
+		_selectedDevices = new ArrayList<>(_deviceMap.keySet());
 
-		_adapter = new ScamDeviceAdapter(_deviceList);
+		_adapter = new ScannedDeviceAdapter(_deviceList);
 
 		initUI();
+
+		_edtLocationName.setText(locationName);
 
 		Intent intent = new Intent(this, BleScanService.class);
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
@@ -88,7 +110,7 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 		_lvScannedBeacons.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 			@Override
 			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-				String address = _deviceList.get(position).getAddress();
+				String address = ((BleDevice) _adapter.getItem(position)).getAddress();
 				if (_selectedDevices.indexOf(address) == -1) {
 					_selectedDevices.add(address);
 				} else {
@@ -98,6 +120,15 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 			}
 		});
 
+		_btnStoreLocation = (Button) findViewById(R.id.btnStoreLocation);
+		_btnStoreLocation.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				storeLocation();
+			}
+		});
+		_btnStoreLocation.setText("Save");
+
 	}
 
 	private ServiceConnection _connection = new ServiceConnection() {
@@ -106,7 +137,7 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 			Log.i(TAG, "connected to ble scan service ...");
 			BleScanService.BleScanBinder binder = (BleScanService.BleScanBinder) service;
 			_service = binder.getService();
-			_service.registerScanDeviceListener(AddNewLocationActivity.this);
+			_service.registerScanDeviceListener(EditLocationActivity.this);
 			_bound = true;
 		}
 
@@ -120,35 +151,31 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 	@Override
 	public void onDeviceScanned(BleDevice device) {
 		_deviceMap.updateDevice(device);
-		_deviceList = _deviceMap.getDistanceSortedList();
+		final BleDeviceList deviceList = _deviceMap.getDistanceSortedList();
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				_adapter.updateList(_deviceList);
+				_adapter.updateList(deviceList);
 				_adapter.notifyDataSetChanged();
 			}
 		});
 	}
 
-	int oldScanInterval;
-	int oldScanPause;
-	boolean oldIsScanning;
-
 	public void toggleScan(View v) {
 		if (_bound) {
 			if (_scanning) {
 				_service.stopIntervalScan();
-				_service.setScanInterval(oldScanInterval);
-				_service.setScanPause(oldScanPause);
-				if (oldIsScanning) {
+				_service.setScanInterval(_oldScanInterval);
+				_service.setScanPause(_oldScanPause);
+				if (_oldIsScanning) {
 					_service.startIntervalScan();
 				}
 				_btnScanLocationBeacons.setText("Scan for beacons");
 			} else {
-				oldIsScanning = _service.isScanning();
+				_oldIsScanning = _service.isScanning();
 				_service.stopIntervalScan();
-				oldScanInterval = _service.getScanInterval();
-				oldScanPause = _service.getScanPause();
+				_oldScanInterval = _service.getScanInterval();
+				_oldScanPause = _service.getScanPause();
 				_service.setScanInterval(2000);
 				_service.setScanPause(100);
 				_service.startIntervalScan();
@@ -158,30 +185,36 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 		}
 	}
 
-	public void addLocation(View view) {
+	public void storeLocation() {
 		String name;
 		if (!(name = _edtLocationName.getText().toString()).isEmpty()) {
-			Location location = new Location(name);
+			_location.setName(name);
+
+			BleDeviceList beaconsList = _location.getBeaconsList();
 			for (String address : _selectedDevices) {
-				location.addBeacon(_deviceMap.getDevice(address));
+				if (!beaconsList.containsDevice(address)) {
+					beaconsList.add(_deviceMap.getDevice(address));
+				}
 			}
-			Settings.getInstance().addNewLocation(location);
+//			Settings.getInstance().addNewLocation(location);
 			finish();
 		} else {
 			Toast.makeText(this, "Location name cannot be empty! Please fill in a name.", Toast.LENGTH_LONG).show();
 			_edtLocationName.requestFocus();
 		}
 	}
-	public static void show(Context context) {
-		Intent showIntent = new Intent(context, AddNewLocationActivity.class);
+
+	public static void show(Context context, String name) {
+		Intent showIntent = new Intent(context, EditLocationActivity.class);
+		showIntent.putExtra("location", name);
 		context.startActivity(showIntent);
 	}
 
 	// Regular inner class which act as the Adapter
-	public class ScamDeviceAdapter extends BaseAdapter {
-		ArrayList<BleDevice> _arrayList;
+	public class ScannedDeviceAdapter extends BaseAdapter {
+		BleDeviceList _arrayList;
 
-		public ScamDeviceAdapter(ArrayList<BleDevice> array) {
+		public ScannedDeviceAdapter(BleDeviceList array) {
 			_arrayList = array;
 		}
 
@@ -202,7 +235,7 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 			return position;
 		}
 
-		public void updateList(ArrayList<BleDevice> list) {
+		public void updateList(BleDeviceList list) {
 			_arrayList = list;
 		}
 

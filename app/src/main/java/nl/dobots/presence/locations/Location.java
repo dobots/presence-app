@@ -16,6 +16,7 @@ import java.util.ArrayList;
 
 import nl.dobots.bluenet.BleUtils;
 import nl.dobots.bluenet.extended.structs.BleDevice;
+import nl.dobots.bluenet.extended.structs.BleDeviceList;
 import nl.dobots.bluenet.extended.structs.BleDeviceMap;
 import nl.dobots.presence.R;
 import nl.dobots.presence.utils.Utils;
@@ -28,7 +29,7 @@ public class Location {
 	private String _name;
 
 	private BleDeviceMap _beaconsMap;
-	private ArrayList<BleDevice> _beaconsList;
+	private BleDeviceList _beaconsList;
 
 	private ListAdapter _locationBeaconsAdapter;
 
@@ -36,7 +37,7 @@ public class Location {
 		_name = name;
 
 		_beaconsMap = new BleDeviceMap();
-		_beaconsList = new ArrayList<>();
+		_beaconsList = new BleDeviceList();
 
 		_locationBeaconsAdapter = new LocationBeaconsAdapter(_beaconsList);
 	}
@@ -102,7 +103,7 @@ public class Location {
 		return _onBeaconLongClickListener;
 	}
 
-	public ArrayList<BleDevice> getBeaconsList() {
+	public BleDeviceList getBeaconsList() {
 		return _beaconsList;
 	}
 

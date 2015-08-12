@@ -36,7 +36,6 @@ import nl.dobots.presence.locations.Location;
 import nl.dobots.presence.locations.LocationsList;
 import nl.dobots.presence.srv.BleScanService;
 import nl.dobots.presence.srv.IntervalScanListener;
-import nl.dobots.presence.srv.ScanDeviceListener;
 import retrofit.RetrofitError;
 
 /**
@@ -82,6 +81,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 	private Date _manualExpirationDate;
 	private boolean _scanningBeforeManual = false;
+	private boolean _scanning;
 
 	private Handler _networkHandler;
 
@@ -145,7 +145,17 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			_service = binder.getService();
 //			_service.registerScanDeviceListener(PresenceDetectionApp.this);
 			_service.registerIntervalScanListener(PresenceDetectionApp.this);
-			_service.startIntervalScan();
+
+			// check if login information is present, otherwise ..
+			if (_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword()) &&
+				!_settings.getLocationsList().isEmpty()) {
+				// if login credentials are ok and locations are added, start scanning directly
+				_service.startIntervalScan();
+			} else {
+				pauseDetection();
+			}
+			_scanning = _service.isScanning();
+
 			_bound = true;
 		}
 
@@ -222,6 +232,10 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	public void pauseDetection() {
 		if (!_detectionPaused) {
 			_detectionPaused = true;
+			if (_bound) {
+				_scanning = _service.isScanning();
+				_service.stopIntervalScan();
+			}
 			Log.i(TAG, "stop watchdog");
 			_watchdogHandler.removeCallbacks(_watchdogRunner);
 		}
@@ -230,6 +244,9 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	public void resumeDetection() {
 		if (_detectionPaused) {
 			_detectionPaused = false;
+			if (_bound && _scanning) {
+				_service.stopIntervalScan();
+			}
 			Log.i(TAG, "resume watchdog");
 			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
 		}

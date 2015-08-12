@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+	  xmlns:app="http://schemas.android.com/apk/res-auto"
+	  xmlns:tools="http://schemas.android.com/tools"
+	  tools:context="nl.dobots.presence.gui.LocationsListActivity"
+	  >
+
+	<item android:id="@+id/locations_action_import"
+		  android:title="Import ..."
+		  android:orderInCategory="100"
+		  app:showAsAction="never"/>
+
+	<item android:id="@+id/locations_action_export"
+		  android:title="Export ..."
+		  android:orderInCategory="101"
+		  app:showAsAction="never"/>
+
+</menu>

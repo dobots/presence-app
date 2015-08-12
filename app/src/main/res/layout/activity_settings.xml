@@ -82,7 +82,9 @@
 			android:id="@+id/lblHighFrequencyDistance"
 			android:layout_below="@+id/sbDetectionDistance"
 			android:layout_alignParentStart="true"
-			android:layout_marginTop="20dp"/>
+			android:layout_marginTop="20dp"
+			android:visibility="gone"
+			/>
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -92,17 +94,20 @@
 			android:id="@+id/txtHighFrequencyDistance"
 			android:layout_marginStart="10dp"
 			android:layout_alignTop="@+id/lblHighFrequencyDistance"
-			android:layout_toEndOf="@+id/lblHighFrequencyDistance"/>
+			android:layout_toEndOf="@+id/lblHighFrequencyDistance"
+			android:visibility="gone"
+			/>
 
 		<SeekBar
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:id="@+id/sbHighFrequencyDistance"
-			android:visibility="visible"
 			android:clickable="false"
 			android:layout_below="@+id/lblHighFrequencyDistance"
 			android:layout_alignParentStart="true"
-			android:layout_alignParentEnd="true"/>
+			android:layout_alignParentEnd="true"
+			android:visibility="gone"
+			/>
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -112,7 +117,9 @@
 			android:id="@+id/lblLowFrequencyDistance"
 			android:layout_marginTop="20dp"
 			android:layout_below="@+id/sbHighFrequencyDistance"
-			android:layout_alignParentStart="true"/>
+			android:layout_alignParentStart="true"
+			android:visibility="gone"
+			/>
 
 		<TextView
 			android:layout_width="wrap_content"
@@ -122,17 +129,20 @@
 			android:id="@+id/txtLowFrequencyDistance"
 			android:layout_marginStart="10dp"
 			android:layout_alignTop="@+id/lblLowFrequencyDistance"
-			android:layout_toEndOf="@+id/lblLowFrequencyDistance"/>
+			android:layout_toEndOf="@+id/lblLowFrequencyDistance"
+			android:visibility="gone"
+			/>
 
 		<SeekBar
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:id="@+id/sbLowFrequencyDistance"
-			android:visibility="visible"
 			android:clickable="false"
 			android:layout_alignParentStart="true"
 			android:layout_alignParentEnd="true"
-			android:layout_below="@+id/lblLowFrequencyDistance" />
+			android:layout_below="@+id/lblLowFrequencyDistance"
+			android:visibility="gone"
+			/>
 
 		<Button
 			android:id="@+id/btnLocations"
@@ -147,24 +157,22 @@
 			/>
 
 		<Button
-			android:id="@+id/btnSaveSettings"
-			android:text="Save Settings"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_alignParentStart="true"
-			android:layout_alignParentEnd="true"
-			android:layout_alignParentBottom="true"
-			android:onClick="saveSettings"/>
-
-		<Button
 			android:id="@+id/btnClearSettings"
 			android:text="Clear Settings"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignParentStart="true"
-			android:layout_alignParentEnd="true"
-			android:layout_above="@id/btnSaveSettings"
+			android:layout_alignParentBottom="true"
 			android:onClick="clearSettings"/>
+
+		<Button
+			android:id="@+id/btnSaveSettings"
+			android:text="Save Settings"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:layout_alignParentEnd="true"
+			android:layout_alignParentBottom="true"
+			android:onClick="saveSettings"/>
 
 	</RelativeLayout>
 

@@ -1,62 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="nl.dobots.presence" >
+		  xmlns:tools="http://schemas.android.com/tools"
+		  package="nl.dobots.presence">
 
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.VIBRATE" />
+	<uses-permission android:name="android.permission.BLUETOOTH" />
+	<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+	<uses-permission android:name="android.permission.INTERNET" />
+	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+	<uses-permission android:name="android.permission.VIBRATE" />
 
-    <application
-        android:name=".PresenceDetectionApp"
-        android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:installLocation="internalOnly"
-        android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
-        <activity
-            android:name=".gui.MainActivity"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name" >
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+	<application
+		android:name=".PresenceDetectionApp"
+		android:allowBackup="true"
+		tools:replace="android:icon"
+		android:icon="@mipmap/ic_launcher"
+		android:installLocation="internalOnly"
+		android:label="@string/app_name"
+		android:theme="@style/AppTheme" >
+		<activity
+			android:name=".gui.MainActivity"
+			android:icon="@mipmap/ic_launcher"
+			android:label="@string/app_name" >
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".gui.SettingsActivity"
-            android:label="@string/title_activity_settings" >
-        </activity>
-        <activity
-            android:name=".gui.LoginActivity"
-            android:label="@string/title_activity_login" >
-        </activity>
-        <activity
-            android:name=".gui.LocationsListActivity"
-            android:label="@string/title_activity_locations" >
-        </activity>
-        <activity
-            android:name=".gui.AddNewLocationActivity"
-            android:label="@string/title_activity_add_location" >
-        </activity>
+				<category android:name="android.intent.category.LAUNCHER" />
+			</intent-filter>
+		</activity>
+		<activity
+			android:name=".gui.SettingsActivity"
+			android:label="@string/title_activity_settings" >
+		</activity>
+		<activity
+			android:name=".gui.LoginActivity"
+			android:label="@string/title_activity_login" >
+		</activity>
+		<activity
+			android:name=".gui.LocationsListActivity"
+			android:label="@string/title_activity_locations" >
+		</activity>
+		<activity
+			android:name=".gui.AddNewLocationActivity"
+			android:label="@string/title_activity_add_location" >
+		</activity>
+		<activity
+			android:name=".gui.EditLocationActivity"
+			android:label="@string/title_activity_edit_location" >
+		</activity>
 
-        <service
-            android:name=".srv.BleScanService"
-            android:enabled="true"
-            android:exported="true"
-            android:icon="@mipmap/ic_launcher"
-            android:label="@string/app_name" >
-        </service>
+		<service
+			android:name=".srv.BleScanService"
+			android:enabled="true"
+			android:exported="true"
+			android:icon="@mipmap/ic_launcher"
+			android:label="@string/app_name" >
+		</service>
 
-        <receiver android:name=".utils.BootCompleteReceiver" >
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
+		<receiver android:name=".utils.BootCompleteReceiver" >
+			<intent-filter>
+				<action android:name="android.intent.action.BOOT_COMPLETED" />
+			</intent-filter>
+		</receiver>
 
-    </application>
+	</application>
 
 </manifest>

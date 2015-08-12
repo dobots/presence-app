@@ -6,8 +6,21 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Environment;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.HashMap;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
@@ -25,9 +38,9 @@ public class LocationsDbAdapter {
 	private static final String TAG = LocationsDbAdapter.class.getCanonicalName();
 
 	// key names of the database fields
-	public static final String KEY_ADDRESS = "address";
-	public static final String KEY_LOCATION = "location";
-	public static final String KEY_NAME = "name";
+	public static final String KEY_DEVICE_ADDRESS = "address";
+	public static final String KEY_LOCATION_NAME = "location";
+	public static final String KEY_DEVICE_NAME = "name";
 	public static final String KEY_ROWID = "_id";
 
 	// table name
@@ -43,9 +56,9 @@ public class LocationsDbAdapter {
 	public static final String DATABASE_CREATE =
 			"create table " + TABLE_NAME + " (" +
 					KEY_ROWID + " integer primary key autoincrement, " +
-					KEY_LOCATION + " text not null," +
-					KEY_ADDRESS + " text not null," +
-					KEY_NAME + " text not null" +
+					KEY_LOCATION_NAME + " text not null," +
+					KEY_DEVICE_ADDRESS + " text not null," +
+					KEY_DEVICE_NAME + " text not null" +
 					" )";
 
 	// application context
@@ -136,7 +149,7 @@ public class LocationsDbAdapter {
 		// as long as there are entries
 		while (!cursor.isAfterLast()) {
 
-			String locationStr = cursor.getString(cursor.getColumnIndexOrThrow(KEY_LOCATION));
+			String locationStr = cursor.getString(cursor.getColumnIndexOrThrow(KEY_LOCATION_NAME));
 
 //			if (!locationStr.matches(lastLocationStr)) {
 //				location = new Location(locationStr);
@@ -149,8 +162,8 @@ public class LocationsDbAdapter {
 				hashMap.put(locationStr, location);
 			}
 
-			String address = cursor.getString(cursor.getColumnIndexOrThrow(KEY_ADDRESS));
-			String name = cursor.getString(cursor.getColumnIndexOrThrow(KEY_NAME));
+			String address = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEVICE_ADDRESS));
+			String name = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEVICE_NAME));
 
 			// dummy value -1 for rssi, because we don't need the rssi for the locations
 			location.addBeacon(new BleDevice(address, name, -1));
@@ -166,9 +179,9 @@ public class LocationsDbAdapter {
 		ContentValues values = new ContentValues();
 
 		for (BleDevice device : location.getBeaconsList()) {
-			values.put(KEY_LOCATION, location.getName());
-			values.put(KEY_ADDRESS, device.getAddress());
-			values.put(KEY_NAME, device.getName());
+			values.put(KEY_LOCATION_NAME, location.getName());
+			values.put(KEY_DEVICE_ADDRESS, device.getAddress());
+			values.put(KEY_DEVICE_NAME, device.getName());
 
 			if (replaceEntry(values) == -1) {
 				return false;
@@ -176,6 +189,16 @@ public class LocationsDbAdapter {
 		}
 
 		return true;
+	}
+
+	private long createEntry(String locationName, String deviceName, String deviceAddress) {
+		ContentValues values = new ContentValues();
+
+		values.put(KEY_LOCATION_NAME, locationName);
+		values.put(KEY_DEVICE_ADDRESS, deviceAddress);
+		values.put(KEY_DEVICE_NAME, deviceName);
+
+		return replaceEntry(values);
 	}
 
 	public long createEntry(ContentValues values) {
@@ -196,9 +219,9 @@ public class LocationsDbAdapter {
 	public boolean updateEntry(long id, String location, String address, String name) {
 		ContentValues values = new ContentValues();
 
-		values.put(KEY_LOCATION, location);
-		values.put(KEY_ADDRESS, address);
-		values.put(KEY_NAME, name);
+		values.put(KEY_LOCATION_NAME, location);
+		values.put(KEY_DEVICE_ADDRESS, address);
+		values.put(KEY_DEVICE_NAME, name);
 
 		int num = mDb.update(TABLE_NAME, values, "_id " + "=" + id, null);
 		return num == 1;
@@ -220,7 +243,7 @@ public class LocationsDbAdapter {
 	 * @return cursor to access the entries
 	 */
 	public Cursor fetchAllEntries() {
-		Cursor mCursor = mDb.query(TABLE_NAME, new String[] {KEY_ROWID, KEY_LOCATION, KEY_ADDRESS, KEY_NAME},
+		Cursor mCursor = mDb.query(TABLE_NAME, new String[] {KEY_ROWID, KEY_LOCATION_NAME, KEY_DEVICE_ADDRESS, KEY_DEVICE_NAME},
 				null, null, null, null, null);
 		if (mCursor != null) {
 			mCursor.moveToFirst();
@@ -235,12 +258,102 @@ public class LocationsDbAdapter {
 	 * @return cursor to access the entry
 	 */
 	public Cursor fetchEntry(long rowId) {
-		Cursor mCursor = mDb.query(TABLE_NAME, new String[] {KEY_ROWID, KEY_LOCATION, KEY_ADDRESS, KEY_NAME},
+		Cursor mCursor = mDb.query(TABLE_NAME, new String[] {KEY_ROWID, KEY_LOCATION_NAME, KEY_DEVICE_ADDRESS, KEY_DEVICE_NAME},
 				KEY_ROWID + "=" + rowId, null, null, null, null);
 		if (mCursor != null) {
 			mCursor.moveToFirst();
 		}
 		return mCursor;
+	}
+
+	public boolean exportDB(String fileName) {
+
+		File exportFile = new File(fileName);
+		File directory = exportFile.getParentFile();
+
+		if (!directory.exists()) {
+			Log.i(TAG, "creating export directory");
+			directory.mkdirs();
+		}
+
+		DataOutputStream dos;
+		try {
+			 dos = new DataOutputStream(new FileOutputStream(exportFile));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		try {
+//			dos.writeChars(String.format("%s,%s,%s,%s\n", KEY_ROWID, KEY_LOCATION_NAME, KEY_DEVICE_NAME, KEY_DEVICE_ADDRESS));
+			dos.write(String.format("%s,%s,%s,%s\n", KEY_ROWID, KEY_LOCATION_NAME, KEY_DEVICE_NAME, KEY_DEVICE_ADDRESS).getBytes());
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		Cursor cursor = fetchAllEntries();
+
+		// as long as there are entries
+		while (!cursor.isAfterLast()) {
+
+			String locationName = cursor.getString(cursor.getColumnIndexOrThrow(KEY_LOCATION_NAME));
+			String deviceAddress = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEVICE_ADDRESS));
+			String deviceName = cursor.getString(cursor.getColumnIndexOrThrow(KEY_DEVICE_NAME));
+			int rowId = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_ROWID));
+
+			try {
+//				dos.writeChars(String.format("%d,%s,%s,%s\n", rowId, locationName, deviceName, deviceAddress));
+				dos.write(String.format("%d,%s,%s,%s\n", rowId, locationName, deviceName, deviceAddress).getBytes());
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+
+			cursor.moveToNext();
+		}
+
+		try {
+			dos.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+
+		return true;
+	}
+
+	public boolean importDB(String fileName) {
+		Log.i(TAG, "importing db from " + fileName);
+
+		BufferedReader reader = null;
+		try {
+			reader = new BufferedReader(new InputStreamReader(new FileInputStream(fileName)));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		}
+		try {
+			String line = reader.readLine(); // skip first line (header information)
+			while ((line = reader.readLine()) != null) {
+				String[] data = line.split(",");
+				String locationName = data[1];
+				String deviceName = data[2];
+				String deviceAddress = data[3];
+				createEntry(locationName, deviceName, deviceAddress);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return  false;
+		} finally {
+			try {
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return true;
 	}
 
 }

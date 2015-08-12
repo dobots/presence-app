@@ -13,6 +13,7 @@
     <string name="save">Save</string>
 
 	<string name="title_activity_add_location">Add Location</string>
+	<string name="title_activity_edit_location">Edit Location</string>
     <string name="title_activity_locations">Configure Locations</string>
 
 </resources>

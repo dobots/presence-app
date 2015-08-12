@@ -18,4 +18,14 @@ public class LocationsList extends ArrayList<Location> {
 		return null;
 	}
 
+	public Location getLocation(String name) {
+		for (Location location : this) {
+			if (location.getName().equals(name)) {
+				return location;
+			}
+		}
+
+		return null;
+	}
+
 }

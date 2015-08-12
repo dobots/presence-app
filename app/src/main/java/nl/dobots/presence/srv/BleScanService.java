@@ -185,7 +185,7 @@ public class BleScanService extends Service {
 				}
 			});
 			onIntervalScanStart();
-			_handler.postDelayed(_stopScanRunnable, Config.LOW_SCAN_INTERVAL);
+			_handler.postDelayed(_stopScanRunnable, _scanInterval);
 		}
 	};
 
@@ -202,12 +202,12 @@ public class BleScanService extends Service {
 				@Override
 				public void onSuccess() {
 					onIntervalScanEnd();
-					_handler.postDelayed(_startScanRunnable, Config.LOW_SCAN_PAUSE);
+					_handler.postDelayed(_startScanRunnable, _scanPause);
 				}
 
 				@Override
 				public void onError(int error) {
-					_handler.postDelayed(_startScanRunnable, Config.LOW_SCAN_PAUSE);
+					_handler.postDelayed(_startScanRunnable, _scanPause);
 				}
 			});
 		}
