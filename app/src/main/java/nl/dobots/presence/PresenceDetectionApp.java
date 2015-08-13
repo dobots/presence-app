@@ -61,17 +61,21 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 	private static PresenceDetectionApp instance = null;
 
+	public static PresenceDetectionApp getInstance() {
+		return instance;
+	}
+
 	private Settings _settings;
 	private AskWrapper _ask;
 
-	private NotificationManager notificationManager;
+	private NotificationManager _notificationManager;
 	private NotificationCompat.Builder _builder;
 
 	private Boolean _currentPresence = null;
 	private String _currentLocation = "";
 	private String _currentAdditionalInfo;
 
-	private long _lastPresenceUpdateTime = 0;
+//	private long _lastPresenceUpdateTime = 0;
 //	private long _lastDetectionTime = 0;
 	private boolean _retry = false;
 	private boolean _updatingPresence;
@@ -97,6 +101,10 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	private boolean _scanningBeforeManual = false;
 	private boolean _scanning;
 
+	private ArrayList<PresenceUpdateListener> _listenerList = new ArrayList<>();
+
+	private boolean _networkErrorActive;
+
 	private Handler _networkHandler;
 
 	private Handler _watchdogHandler;
@@ -118,38 +126,28 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		public void onReceive(Context context, Intent intent) {
 			if (intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION)) {
 				if (!intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)) {
+					// connection reestablished, clear network error
+					_networkErrorActive = false;
+
+					Log.d(TAG, "Intent: " + intent.toString());
+					Log.d(TAG, "Extras: " + intent.getExtras().toString());
+
 					if (_updateWaiting) {
-						_updateWaiting = false;
-						_watchdogHandler.postDelayed(new Runnable() {
-							@Override
-							public void run() {
-								updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
-							}
-						}, 500);
+						Log.i(TAG, "update waiting ...");
+						// if update is waiting, trigger presence update again ...
+						updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
+					} else {
+						// ... otherwise, request current presence in case it changed, or if we never
+						// new it in the first place
+						if (_currentPresence == null) {
+							Log.i(TAG, "no update, and presence unknown ...");
+							requestCurrentPresence();
+						}
 					}
 				}
 			}
 		}
 	};
-
-//	private BroadcastReceiver _receiver = new BroadcastReceiver() {
-//		@Override
-//		public void onReceive(Context context, Intent intent) {
-//			if (intent.getAction().equals(WifiManager.WIFI_STATE_CHANGED_ACTION)) {
-//				if (intent.getIntExtra(WifiManager.EXTRA_WIFI_STATE, WifiManager.WIFI_STATE_UNKNOWN) == WifiManager.WIFI_STATE_ENABLED) {
-//					if (_updateWaiting) {
-//						_updateWaiting = false;
-//						_watchdogHandler.postDelayed(new Runnable() {
-//							@Override
-//							public void run() {
-//								updatePresence(_updateWaitingPresence, _updateWaitingLocation, _updateWaitingAdditionalInfo);
-//							}
-//						}, 500);
-//					}
-//				}
-//			}
-//		}
-//	};
 
 	private ServiceConnection _connection = new ServiceConnection() {
 		@Override
@@ -163,9 +161,10 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			// check if login information is present, otherwise ..
 			if (_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword()) &&
 				!_settings.getLocationsList().isEmpty()) {
-				// if login credentials are ok and locations are added, start scanning directly
+				// if login credentials are ok and locations are configured, start scanning directly ...
 				_service.startIntervalScan();
 			} else {
+				// ... otherwise, pause detection until both requirements are met
 				pauseDetection();
 			}
 			_scanning = _service.isScanning();
@@ -178,8 +177,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			Log.i(TAG, "disconnected from service");
 			_bound = false;
 		}
-	};
-	private ArrayList<PresenceUpdateListener> _listenerList = new ArrayList<>();
+	};;
 
 	@Override
 	public void onCreate() {
@@ -196,7 +194,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 		_ask = AskWrapper.getInstance();
 
-		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		_notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
 		HandlerThread watchdogThread = new HandlerThread("Watchdog");
 		watchdogThread.start();
@@ -218,14 +216,8 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		Intent intent = new Intent(this, BleScanService.class);
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
 
-//		if (!_ask.isLoggedIn()) {
-//			if (_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer())) {
-//				_ask.getCurrentPresence(_currentPresence, _currentLocation);
-//				if (_currentPresence != null) {
-//					notifyPresenceUpdate(_currentPresence, "", "");
-//				}
-//			}
-//		}
+		// try to request the current presence information from ask
+//		requestCurrentPresence();
 
 //		BleDevice.setExpirationTime(1500);
 	}
@@ -239,8 +231,27 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		_settings.onDestroy();
 	}
 
-	public static PresenceDetectionApp getInstance() {
-		return instance;
+	private void requestCurrentPresence() {
+
+		AskWrapper.PresenceCallback callback = new AskWrapper.PresenceCallback() {
+			@Override
+			public void onSuccess(boolean present, String location) {
+				_currentPresence = present;
+				_currentLocation = location;
+				notifyPresenceUpdate(present, location, "");
+			}
+
+			@Override
+			public void onError() {
+				Log.e(TAG, "could not get presence");
+			}
+		};
+
+		if (!_ask.isLoggedIn()) {
+			_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(), callback);
+		} else {
+			_ask.getCurrentPresence(callback);
+		}
 	}
 
 	public void pauseDetection() {
@@ -259,7 +270,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		if (_detectionPaused) {
 			_detectionPaused = false;
 			if (_bound && _scanning) {
-				_service.stopIntervalScan();
+				_service.startIntervalScan();
 			}
 			Log.i(TAG, "resume watchdog");
 			_watchdogHandler.postDelayed(_watchdogRunner, Config.WATCHDOG_INTERVAL);
@@ -285,8 +296,9 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		if (!devices.isEmpty() &&
 				// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
 				// otherwise we have to move it inside the find location
-				!_updatingPresence &&
-				System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
+				!_updatingPresence
+//				&& System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT
+				)
 		{
 			SimpleLocalization.LocalizationResult localizationResult = SimpleLocalization.getInstance().findLocation(devices);
 
@@ -298,35 +310,6 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			}
 		}
 	}
-
-//	@Override
-//	public void onDeviceScanned(BleDevice dev) {
-//		if (_detectionPaused) return;
-//
-//		// refresh device, triggers calculation of average rssi and distance
-////		device.refresh();
-//
-//		BleDeviceMap deviceMap = _service.getDeviceMap();
-//		deviceMap.refresh();
-//		final ArrayList<BleDevice> devices = deviceMap.getDistanceSortedList();
-//
-//		if (!devices.isEmpty() &&
-//			// as long as DETECTION_TIMEOUT is bigger than PRESENCE_UPDATE_TIMEOUT
-//			// otherwise we have to move it inside the find location
-//			!_updatingPresence &&
-//			System.currentTimeMillis() - _lastPresenceUpdateTime > Config.PRESENCE_UPDATE_TIMEOUT)
-//		{
-//			SimpleLocalization.LocalizationResult localizationResult = SimpleLocalization.getInstance().findLocation(devices);
-//
-//			if (localizationResult != null) {
-//				Location location = localizationResult.location;
-//				BleDevice device = localizationResult.triggerDevice;
-//				updatePresence(true, location.getName(),
-//						String.format("%s at %.2f", device.getName(), device.getDistance()));
-//			}
-//		}
-//	}
-
 
 	public Date getManualExpirationDate() {
 		return _manualExpirationDate;
@@ -342,10 +325,6 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	public void setManualPresence(boolean present, long expirationTime) {
 		_manualExpirationDate = new Date(new Date().getTime() + expirationTime);
 		pauseDetection();
-		if (_bound) {
-			_scanningBeforeManual = _service.isScanning();
-			_service.stopIntervalScan();
-		}
 		_watchdogHandler.postDelayed(_onManualPresenceExpired, expirationTime);
 		updatePresence(present, "Manual", "");
 	}
@@ -353,37 +332,42 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	public void setAutoPresence() {
 		_manualExpirationDate = null;
 		_watchdogHandler.removeCallbacks(_onManualPresenceExpired);
+		// force update
+		_updatingPresence = false;
+//		_lastPresenceUpdateTime = 0;
 		resumeDetection();
-		if (_bound) {
-			if (_scanningBeforeManual) {
-				_service.startIntervalScan();
-			}
-		}
 	}
 
 	private void onNetworkError(String error, boolean present, String location, String additionalInfo) {
 
-		Intent contentIntent = new Intent(this, MainActivity.class);
-		contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-		PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+		// only trigger notification once as long as the network error is active.
+		if (!_networkErrorActive) {
+			_networkErrorActive = true;
 
-		Intent wifiSettingsIntent = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
-//        presentIntent.putExtra("nl.dobots.presence.NOTIFICATION_ANSWER", true);
-		PendingIntent piWifiSettings = PendingIntent.getActivity(this, 0, wifiSettingsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+			Intent contentIntent = new Intent(this, MainActivity.class);
+			contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-		_builder = new NotificationCompat.Builder(this)
-				.setSmallIcon(R.mipmap.ic_launcher)
-				.setContentTitle("Network Error")
-				.setContentText(error)
-				.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
-				.setContentIntent(piContent)
-				.setDefaults(Notification.DEFAULT_SOUND)
-				.setLights(Color.BLUE, 500, 1000);
-		notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
-		Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+			Intent wifiSettingsIntent = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
+			PendingIntent piWifiSettings = PendingIntent.getActivity(this, 0, wifiSettingsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+			_builder = new NotificationCompat.Builder(this)
+					.setSmallIcon(R.mipmap.ic_launcher)
+					.setContentTitle("Network Error")
+					.setContentText(error)
+					.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
+					.setContentIntent(piContent)
+					.setDefaults(Notification.DEFAULT_SOUND)
+					.setLights(Color.BLUE, 500, 1000);
+			_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
+			Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+
+		}
+
+		// set logged in as false (because of network error)
 		_ask.setLoggedIn(false);
 
+		// store the presence udpate, will be triggered once network connection is reestablished
 		_updateWaiting = true;
 		_updateWaitingPresence = present;
 		_updateWaitingLocation = location;
@@ -428,10 +412,16 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 				// check if we are logged in, and do so otherwise
 				if (!_ask.isLoggedIn()) {
 					_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
-							new AskWrapper.StatusCallback() {
+							new AskWrapper.PresenceCallback() {
 								@Override
-								public void onSuccess() {
+								public void onSuccess(boolean present, String location) {
+//									_currentPresence = present;
+//									_currentLocation = location;
 									updatePresence(present, location, additionalInfo);
+									// just to be sure, it should already be set to false when
+									// connection is reestablished, but just in case we missed that
+									// broadcast, if login succeeded, we can set it to false for sure
+									_networkErrorActive = false;
 								}
 
 								@Override
@@ -466,7 +456,13 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 								_currentAdditionalInfo = additionalInfo;
 
 								notifyPresenceUpdate(present, location, additionalInfo);
-								notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
+								_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
+
+								// just to be sure, it should already be set to false when
+								// connection is reestablished, but just in case we missed that
+								// broadcast, if updating the presence succeeded, we can set it
+								// to false for sure
+								_networkErrorActive = false;
 							}
 
 							@Override
@@ -479,7 +475,8 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 				);
 
 				_updatingPresence = false;
-				_lastPresenceUpdateTime = System.currentTimeMillis();
+				_updateWaiting = false;
+//				_lastPresenceUpdateTime = System.currentTimeMillis();
 				_retry = false;
 			} catch (RetrofitError e) {
 				e.printStackTrace();
@@ -489,6 +486,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 					_retry = true;
 				} else {
 					_updatingPresence = false;
+					_updateWaiting = false;
 				}
 			} catch (Exception e) {
 				e.printStackTrace();

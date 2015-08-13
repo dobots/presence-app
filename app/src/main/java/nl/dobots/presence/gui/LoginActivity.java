@@ -97,22 +97,22 @@ public class LoginActivity extends Activity {
 					Log.w(TAG, "Failed - No username and/or password given via the login form");
 					Toast.makeText(getApplicationContext(), "Please fill in your username and password.", Toast.LENGTH_SHORT).show();
 				} else {
-				   _ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
-						   new AskWrapper.StatusCallback() {
-							   @Override
-							   public void onSuccess() {
-								   _credentialsValid = true;
-								   hideKeyboard();
-								   Toast.makeText(getApplicationContext(),"Welcome " + _settings.getUsername() + " !",Toast.LENGTH_SHORT).show();
-								   finish();
-							   }
+					_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
+							new AskWrapper.PresenceCallback() {
+								@Override
+								public void onSuccess(boolean present, String location) {
+									_credentialsValid = true;
+									hideKeyboard();
+									Toast.makeText(getApplicationContext(),"Welcome " + _settings.getUsername() + " !",Toast.LENGTH_SHORT).show();
+									finish();
+								}
 
-							   @Override
-							   public void onError() {
-								   Toast.makeText(getApplicationContext(),"Failed to log in! Check your username and password.",Toast.LENGTH_SHORT).show();
-							   }
-						   }
-				   );
+								@Override
+								public void onError() {
+									Toast.makeText(getApplicationContext(),"Failed to log in! Check your username and password.",Toast.LENGTH_SHORT).show();
+								}
+							}
+					);
 				}
 			}
 		});

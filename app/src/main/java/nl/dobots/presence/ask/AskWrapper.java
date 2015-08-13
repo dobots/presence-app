@@ -6,6 +6,7 @@ import android.os.Looper;
 
 import java.util.Map;
 
+import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.ask.rest.RestApi;
 import retrofit.RetrofitError;
 
@@ -30,6 +31,11 @@ public class AskWrapper {
 
 	public interface StatusCallback {
 		void onSuccess();
+		void onError();
+	}
+
+	public interface PresenceCallback {
+		void onSuccess(boolean present, String location);
 		void onError();
 	}
 
@@ -61,7 +67,7 @@ public class AskWrapper {
 		return !username.isEmpty() && !password.isEmpty();
 	}
 
-	public void login(final String username, final String password, final String server, final StatusCallback callback) {
+	public void login(final String username, final String password, final String server, final PresenceCallback callback) {
 //		if (isLoggedIn()) return true;
 
 		// can't execute network operations in the main thread, so we have to delegate
@@ -73,16 +79,20 @@ public class AskWrapper {
 					login(username, password, server, callback);
 				}
 			});
+			return;
 		}
 
 		_loggedIn = false;
 		if(isLoginCredentialsValid(username, password)) {
 			try {
 				_restApi.login(username, password, server);
-				Map<String, Object> presence = _restApi.getStandByApi().getPresence(false);
-				if (presence != null) {
+				Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
+				if (presenceObj != null) {
 					_loggedIn = true;
-					callback.onSuccess();
+//					callback.onSuccess();
+					Boolean present = (Boolean) presenceObj.get("present");
+					String location = (String) presenceObj.get("location");
+					callback.onSuccess(present, location);
 					return;
 				}
 			} catch (Exception e) {
@@ -111,6 +121,7 @@ public class AskWrapper {
 					updatePresence(present, location, callback);
 				}
 			});
+			return;
 		}
 
 		try {
@@ -122,49 +133,30 @@ public class AskWrapper {
 		}
 	}
 
-//	Boolean _presence;
-//	String _location;
-//
-//	public boolean getCurrentPresence(Boolean presence, String location) {
-//		// can't execute network operations in the main thread, so we have to delegate
-//		// the call to the network handler
-//		if (Looper.myLooper() == Looper.getMainLooper()) {
-//			final Object lock = new Object();
-//
-//			_networkHandler.post(new Runnable() {
-//				@Override
-//				public void run() {
-//					synchronized (lock) {
-//						getCurrentPresence(_presence, _location);
-//						lock.notify();
-//					}
-//				}
-//			});
-//
-//			try {
-//				synchronized (lock) {
-//					lock.wait();
-//				}
-//			} catch (InterruptedException e) {
-//				e.printStackTrace();
-//				return false;
-//			}
-//			presence = _presence;
-//			location = _location;
-//			return true;
-//		}
-//
-//		try {
-//			Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
-//			if (presenceObj != null) {
-//				presence = (Boolean) presenceObj.get("present");
-//				location = (String) presenceObj.get("location");
-//				return true;
-//			}
-//		} catch (RetrofitError e) {
-//			e.printStackTrace();
-//		}
-//		return false;
-//	}
+	public void getCurrentPresence(final PresenceCallback callback) {
+		// can't execute network operations in the main thread, so we have to delegate
+		// the call to the network handler
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					getCurrentPresence(callback);
+				}
+			});
+			return;
+		}
+
+		try {
+			Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
+			if (presenceObj != null) {
+				Boolean present = (Boolean) presenceObj.get("present");
+				String location = (String) presenceObj.get("location");
+				callback.onSuccess(present, location);
+			}
+		} catch (RetrofitError e) {
+			e.printStackTrace();
+			callback.onError();
+		}
+	}
 
 }

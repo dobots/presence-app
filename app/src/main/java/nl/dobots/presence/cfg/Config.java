@@ -24,7 +24,7 @@ public class Config {
 	////////////////////////
 
 //	// NOTE: PRESENCE_UPDATE_TIMEOUT has to be smaller than PRESENCE_TIMEOUT
-	public static final long PRESENCE_UPDATE_TIMEOUT = 10 * 1000; // 30 seconds (in ms)
+//	public static final long PRESENCE_UPDATE_TIMEOUT = 10 * 1000; // 10 seconds (in ms)
 //	//	public static final long PRESENCE_TIMEOUT = 30 * (60 * 1000); // 30 minutes (in ms)
 //	public static final long PRESENCE_TIMEOUT = 1* (30 * 1000); // 30 minutes (in ms)
 
@@ -45,7 +45,7 @@ public class Config {
 //	public static final int HIGH_SCAN_EXPIRATION = 2000; // 2 seconds
 
 	//	private static final long WATCHDOG_INTERVAL = 5 * (60 * 1000); // 5 minutes (in ms)
-	public static final long WATCHDOG_INTERVAL = 1 * (30 * 1000); // 5 minutes (in ms)
+	public static final long WATCHDOG_INTERVAL = 1 * (30 * 1000); // 30 seconds (in ms)
 
 	//////////////////
 	// Locations DB //

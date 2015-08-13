@@ -52,7 +52,7 @@ public class BleScanService extends Service {
 	private final IBinder _binder = new BleScanBinder();
 	private BleExt _ble;
 
-	private Handler _handler = null;
+	private Handler _intervalScanHandler = null;
 
 	private boolean _scanning = false;
 	private boolean _stopped = false;
@@ -68,20 +68,30 @@ public class BleScanService extends Service {
 	private IStatusCallback _connectionCallback = new IStatusCallback() {
 		@Override
 		public void onSuccess() {
+			// will be called whenever bluetooth is enabled
+
 			Log.d(TAG, "successfully initialized BLE");
 			_initialized = true;
+
+			// if scanning enabled, resume scanning
 			if (_scanning) {
-				_handler.removeCallbacksAndMessages(null);
-				_handler.post(_startScanRunnable);
+				_intervalScanHandler.removeCallbacksAndMessages(null);
+				_intervalScanHandler.post(_startScanRunnable);
 			}
+
+			// if BLE init succeeded clear the notification again
 			_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
 		}
 
 		@Override
 		public void onError(int error) {
+			// will (also) be called whenever bluetooth is disabled
+
 			Log.e(TAG, "Ble Error: " + error);
 			_initialized = false;
 
+			// if bluetooth was turned off, issue a notification that present detection won't work
+			// without BLE ...
 			if (error == BleExtTypes.ERROR_BLUETOOTH_TURNED_OFF) {
 
 				Intent contentIntent = new Intent(BleScanService.this, MainActivity.class);
@@ -117,7 +127,7 @@ public class BleScanService extends Service {
 
 		HandlerThread handlerThread = new HandlerThread("BleScanService");
 		handlerThread.start();
-		_handler = new Handler(handlerThread.getLooper());
+		_intervalScanHandler = new Handler(handlerThread.getLooper());
 
 	}
 
@@ -163,7 +173,7 @@ public class BleScanService extends Service {
 		}
 
 		// Remove all callbacks and messages that were posted
-		_handler.removeCallbacksAndMessages(null);
+		_intervalScanHandler.removeCallbacksAndMessages(null);
 
 		_stopped = true;
 	}
@@ -185,7 +195,7 @@ public class BleScanService extends Service {
 				}
 			});
 			onIntervalScanStart();
-			_handler.postDelayed(_stopScanRunnable, _scanInterval);
+			_intervalScanHandler.postDelayed(_stopScanRunnable, _scanInterval);
 		}
 	};
 
@@ -202,12 +212,12 @@ public class BleScanService extends Service {
 				@Override
 				public void onSuccess() {
 					onIntervalScanEnd();
-					_handler.postDelayed(_startScanRunnable, _scanPause);
+					_intervalScanHandler.postDelayed(_startScanRunnable, _scanPause);
 				}
 
 				@Override
 				public void onError(int error) {
-					_handler.postDelayed(_startScanRunnable, _scanPause);
+					_intervalScanHandler.postDelayed(_startScanRunnable, _scanPause);
 				}
 			});
 		}
@@ -227,13 +237,13 @@ public class BleScanService extends Service {
 		if (!_scanning) {
 			Log.i(TAG, "Starting interval scan");
 			_scanning = true;
-			_handler.post(_startScanRunnable);
+			_intervalScanHandler.post(_startScanRunnable);
 		}
 	}
 
 	public void stopIntervalScan() {
 		if (_scanning) {
-			_handler.removeCallbacksAndMessages(null);
+			_intervalScanHandler.removeCallbacksAndMessages(null);
 			_scanning = false;
 			_ble.stopScan(new IStatusCallback() {
 				@Override
