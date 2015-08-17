@@ -1,37 +1,36 @@
+<!-- 
 [![Build Status](https://travis-ci.org/chaasfr/presence-app.svg)](https://travis-ci.org/chaasfr/presence-app)
+-->
 
-# Presence App
+# Presence App aka Who's In
 
 ##What it does
 Using BLE technology, this app brings to you basic indoor localization!
 
-It is meant to work with dobeacons/crownstones ( https://dobots.nl/products/crownstone/ ) and ask's standby interface( https://standby.ask-cs.nl/ ).
+It is meant to work with [dobeacons](https://dobots.nl/products/crownstone/) and [ask's standby interface](https://standby.ask-cs.nl/).
 
-Currently, StandBy let you inform everyone of your position and availability via wifi. Presence improves the localization via BLE, and automatically inform others of your position for you!
+Currently, StandBy lets you inform everyone of your position and availability via wifi. This app improves the localization using BLE devices, and automatically inform others of your position for you!
 
-Presence runs silently in the background of your phone. All you have to do is to choose the BLE devices you wish to use for localization, and fill your standby credentials. Afterwards, you can simply close the app, and forget about it! If you ever wish to change the settings or stop the localization, start Presence again.
+The app runs silently in the background of your phone. All you have to do is to choose the BLE devices you wish to use for localization, and fill in your standby credentials. Afterwards, you can simply close the app, and forget about it! If you ever wish to change the settings or stop the localization, start Presence again.
 
-The app updates your position every 10 sec. The battery consumption has been optimized. On a OnePlus one, it consummed less than 4% of battery over 24 hours.
+The app updates your position every 30 sec.
 
 ##APK
-You can find the apk here: http://christian.haas-frangi.perso.centrale-marseille.fr/visible/presence.apk
+You can find the apk on [Google Play Store](https://play.google.com/store/apps/details?id=nl.dobots.presence)
 
 ##Installation
-###Third Party libraries used
-Altbeacon: http://altbeacon.org/
 
-Okhttp: http://square.github.io/okhttp/ /!\ use okhttp 2.3.0 because 2.4.0 won't work ! /!\
+### Libraries used
 
-retrofit: http://square.github.io/retrofit/
+This project uses the bluenet-lib-android project found [here](https://github.com/dobots/bluenet-lib-android). Until the library is added to the maven repository you have to install it manually following these steps:
 
-fasterxml jackson datatype: https://github.com/FasterXML/jackson-datatype-joda
+1. Clone the repository [bluenet-lib-android](https://github.com/dobots/bluenet-lib-android) to your disk
 
-###Using Android Studio and Gradle
-download https://altbeacon.github.io/android-beacon-library/download.html
+2. cd to the root folder of this project
 
-add depedency to your project: https://altbeacon.github.io/android-beacon-library/configure.html
+3. create a symlink to the bluenet-lib-android folder using:
 
-###Using Eclipse
-remove gradle related files
+    `ln -s /path/to/the/bluenet-lib-android bluenet-lib`
 
-follow https://altbeacon.github.io/android-beacon-library/configure.html
+4. Refresh the presence-app in the android studio: `File > Synchronize`
+
