@@ -108,8 +108,8 @@ public class LoginActivity extends Activity {
 								}
 
 								@Override
-								public void onError() {
-									Toast.makeText(getApplicationContext(),"Failed to log in! Check your username and password.",Toast.LENGTH_SHORT).show();
+								public void onError(String errorMessage) {
+									Toast.makeText(getApplicationContext(), "Failed to log in! Check your internet and/or username and password.",Toast.LENGTH_SHORT).show();
 								}
 							}
 					);

@@ -31,12 +31,12 @@ public class AskWrapper {
 
 	public interface StatusCallback {
 		void onSuccess();
-		void onError();
+		void onError(String errorMessage);
 	}
 
 	public interface PresenceCallback {
 		void onSuccess(boolean present, String location);
-		void onError();
+		void onError(String errorMessage);
 	}
 
 	private static AskWrapper instance = null;
@@ -93,13 +93,16 @@ public class AskWrapper {
 					Boolean present = (Boolean) presenceObj.get("present");
 					String location = (String) presenceObj.get("location");
 					callback.onSuccess(present, location);
-					return;
+				} else {
+					callback.onError("failed to get current presence information");
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+				callback.onError(e.getMessage());
 			}
+		} else {
+			callback.onError("login credentials not valid");
 		}
-		callback.onError();
 	}
 
 	public boolean isLoggedIn() {
@@ -129,7 +132,7 @@ public class AskWrapper {
 			callback.onSuccess();
 		} catch (RetrofitError e) {
 			e.printStackTrace();
-			callback.onError();
+			callback.onError(e.getMessage());
 		}
 	}
 
@@ -152,10 +155,12 @@ public class AskWrapper {
 				Boolean present = (Boolean) presenceObj.get("present");
 				String location = (String) presenceObj.get("location");
 				callback.onSuccess(present, location);
+			} else {
+				callback.onError("failed to get current presence information");
 			}
 		} catch (RetrofitError e) {
 			e.printStackTrace();
-			callback.onError();
+			callback.onError(e.getMessage());
 		}
 	}
 

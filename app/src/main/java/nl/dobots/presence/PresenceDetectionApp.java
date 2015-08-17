@@ -242,8 +242,8 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			}
 
 			@Override
-			public void onError() {
-				Log.e(TAG, "could not get presence");
+			public void onError(String errorMessage) {
+				Log.e(TAG, String.format("could not get presence. Error: %s", errorMessage));
 			}
 		};
 
@@ -355,6 +355,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 					.setSmallIcon(R.mipmap.ic_launcher)
 					.setContentTitle("Network Error")
 					.setContentText(error)
+					.setStyle(new NotificationCompat.BigTextStyle().bigText(error))
 					.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
 					.setContentIntent(piContent)
 					.setDefaults(Notification.DEFAULT_SOUND)
@@ -425,10 +426,11 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 								}
 
 								@Override
-								public void onError() {
+								public void onError(String errorMessage) {
 									Log.e(TAG, "failed to log in");
 
-									onNetworkError("Can't login, please check your internet!",
+									onNetworkError(String.format("Can't login, please check your internet!\n\n" +
+													"Error: %s", errorMessage),
 											present, location, additionalInfo);
 								}
 							}
@@ -466,9 +468,10 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 							}
 
 							@Override
-							public void onError() {
+							public void onError(String errorMessage) {
 								Log.e(TAG, "failed to update presence");
-								onNetworkError("Failed to update presence, please check your internet!",
+								onNetworkError(String.format("Failed to update presence, please check your internet!\n\n" +
+												"Error: %s", errorMessage),
 										present, location, additionalInfo);
 							}
 						}

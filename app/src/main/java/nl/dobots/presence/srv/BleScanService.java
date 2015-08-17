@@ -106,10 +106,13 @@ public class BleScanService extends Service {
 				Intent btEnableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 				PendingIntent piBtEnable = PendingIntent.getActivity(BleScanService.this, 0, btEnableIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+				String errorMessage = "Can't detect presence without BLE!";
+
 				NotificationCompat.Builder builder = new NotificationCompat.Builder(BleScanService.this)
 						.setSmallIcon(R.mipmap.ic_launcher)
 						.setContentTitle("Presence Detection Error")
-						.setContentText("Can't detect presence without BLE!")
+						.setContentText(errorMessage)
+						.setStyle(new NotificationCompat.BigTextStyle().bigText(errorMessage))
 						.addAction(android.R.drawable.ic_menu_manage, "Enable Bluetooth", piBtEnable)
 						.setContentIntent(piContent)
 						.setDefaults(Notification.DEFAULT_SOUND)
