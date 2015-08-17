@@ -87,12 +87,18 @@ public class BleScanService extends Service {
 		public void onError(int error) {
 			// will (also) be called whenever bluetooth is disabled
 
-			Log.e(TAG, "Ble Error: " + error);
+			switch (error) {
+				case BleExtTypes.ERROR_BLUETOOTH_TURNED_OFF:
+					Log.e(TAG, "Bluetooth turned off!!");
+					break;
+				default:
+					Log.e(TAG, "Ble Error: " + error);
+			}
 			_initialized = false;
 
-			// if bluetooth was turned off, issue a notification that present detection won't work
-			// without BLE ...
-			if (error == BleExtTypes.ERROR_BLUETOOTH_TURNED_OFF) {
+			// if bluetooth was turned off and scanning is enabled, issue a notification that present
+			// detection won't work without BLE ...
+			if ( _scanning && error == BleExtTypes.ERROR_BLUETOOTH_TURNED_OFF) {
 
 				Intent contentIntent = new Intent(BleScanService.this, MainActivity.class);
 				PendingIntent piContent = PendingIntent.getActivity(BleScanService.this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
