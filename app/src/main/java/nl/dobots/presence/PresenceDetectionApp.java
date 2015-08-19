@@ -4,6 +4,7 @@ import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -31,8 +32,8 @@ import nl.dobots.presence.gui.MainActivity;
 import nl.dobots.presence.localization.Localization;
 import nl.dobots.presence.localization.SimpleLocalization;
 import nl.dobots.presence.locations.Location;
-import nl.dobots.presence.locations.LocationsList;
 import nl.dobots.presence.srv.BleScanService;
+import nl.dobots.presence.srv.EventListener;
 import nl.dobots.presence.srv.IntervalScanListener;
 import retrofit.RetrofitError;
 
@@ -53,7 +54,7 @@ import retrofit.RetrofitError;
  *
  * @author Dominik Egger
  */
-public class PresenceDetectionApp extends Application implements IntervalScanListener {
+public class PresenceDetectionApp extends Application implements IntervalScanListener, EventListener {
 
 	private static final String TAG = PresenceDetectionApp.class.getCanonicalName();
 
@@ -113,6 +114,8 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 						updatePresence(false, "", "");
 					}
 				});
+
+				// todo: should we go into low frequency scanning, e.g. 2 sec per 5 min or so until at least one beacon is seen again?
 			} else {
 				Log.i(TAG, "watchdog ok.");
 			}
@@ -164,16 +167,19 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			Log.i(TAG, "connected to ble scan service ...");
 			BleScanService.BleScanBinder binder = (BleScanService.BleScanBinder) service;
 			_service = binder.getService();
-//			_service.registerScanDeviceListener(PresenceDetectionApp.this);
 			_service.registerIntervalScanListener(PresenceDetectionApp.this);
+			_service.registerEventListener(PresenceDetectionApp.this);
+
+			_service.setScanInterval(Config.LOW_SCAN_INTERVAL);
+			_service.setScanPause(Config.LOW_SCAN_PAUSE);
 
 			// check if login information is present, otherwise ..
 			if (_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword()) &&
 				!_settings.getLocationsList().isEmpty()) {
-				// if login credentials are ok and locations are configured, start scanning directly ...
-				_service.startIntervalScan();
+				// if login credentials are ok and locations are configured, start detection directly ..
+//				_service.startIntervalScan();
 			} else {
-				// ... otherwise, pause detection until both requirements are met
+				// .. otherwise, pause detection until both requirements are met
 				pauseDetection();
 			}
 			_scanning = _service.isScanning();
@@ -223,19 +229,17 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         registerReceiver(_receiver, filter);
 
-		Intent startServiceIntent = new Intent(this, BleScanService.class);
-		this.startService(startServiceIntent);
+//		Intent startServiceIntent = new Intent(this, BleScanService.class);
+//		this.startService(startServiceIntent);
 
 		Intent intent = new Intent(this, BleScanService.class);
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
-
-		// try to request the current presence information from ask
-//		requestCurrentPresence();
 
 		// set expiration time for RSSI measurements. keeps measurements of 5 scan intervals
 		// before throwing them out. i.e. averages over all measurements received in the last 5
 		// scan intervals
 		BleDevice.setExpirationTime(5 * (Config.LOW_SCAN_PAUSE + Config.LOW_SCAN_INTERVAL));
+
 	}
 
 	@Override
@@ -421,88 +425,97 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 //				return;
 //			}
 
-			try {
-				// check if we are logged in, and do so otherwise
-				if (!_ask.isLoggedIn()) {
-					_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
-							new AskWrapper.PresenceCallback() {
-								@Override
-								public void onSuccess(boolean remotePresent, String remoteLocation) {
-									updatePresence(present, location, additionalInfo);
-									// just to be sure, it should already be set to false when
-									// connection is reestablished, but just in case we missed that
-									// broadcast, if login succeeded, we can set it to false for sure
-									_networkErrorActive = false;
-								}
+			// check if we are logged in, and do so otherwise
+			if (!_ask.isLoggedIn()) {
+				_ask.login(_settings.getUsername(), _settings.getPassword(), _settings.getServer(),
+					new AskWrapper.PresenceCallback() {
+						@Override
+						public void onSuccess(boolean remotePresent, String remoteLocation) {
+							// login was successful, call update presence again
+							updatePresence(present, location, additionalInfo);
 
-								@Override
-								public void onError(String errorMessage) {
-									Log.e(TAG, "failed to log in");
-
-									onNetworkError(String.format("Can't login, please check your internet!\n\n" +
-													"Error: %s", errorMessage),
-											present, location, additionalInfo);
-								}
-							}
-					);
-					return;
-				}
-
-				Log.i(TAG, "Update presence to: " + present + " at " + location);
-
-				_ask.updatePresence(present, location,
-						new AskWrapper.StatusCallback() {
-							@Override
-							public void onSuccess() {
-								// set current values
-								_currentLocation = location;
-								_currentPresence = present;
-								_currentAdditionalInfo = additionalInfo;
-
-								// notify anybody listening for presence updates
-								notifyPresenceUpdate(present, location, additionalInfo);
-								// cancel any outstanding notification (network error or BT error)
-								_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
-
-								// just to be sure, it should already be set to false when
-								// connection is reestablished, but just in case we missed that
-								// broadcast, if updating the presence succeeded, we can set it
-								// to false for sure
-								_networkErrorActive = false;
-							}
-
-							@Override
-							public void onError(String errorMessage) {
-								Log.e(TAG, "failed to update presence");
-								onNetworkError(String.format("Failed to update presence, please check your internet!\n\n" +
-												"Error: %s", errorMessage),
-										present, location, additionalInfo);
-							}
+							// just to be sure, it should already be set to false when
+							// connection is reestablished, but just in case we missed that
+							// broadcast, if login succeeded, we can set it to false for sure
+							_networkErrorActive = false;
 						}
-				);
 
-				// clear flags
-				_updatingPresence = false;
-				_updateWaiting = false;
-				_retry = false;
-			} catch (RetrofitError e) {
-				e.printStackTrace();
-				// if a network error occurred, set logged in state to false
-				_ask.setLoggedIn(false);
-				// if we are not doing a retry already
-				if (!_retry) {
-					// try calling update presence again
-					updatePresence(present, location, additionalInfo);
-					// and set retry flag
-					_retry = true;
-				} else {
-					// otherwise, clear update flags and abort
-					_updatingPresence = false;
-					_updateWaiting = false;
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
+						@Override
+						public void onError(String errorMessage) {
+							Log.e(TAG, "failed to log in");
+
+							onNetworkError(String.format("Can't login, please check your internet!\n\n" +
+											"Error: %s", errorMessage),
+									present, location, additionalInfo);
+						}
+					}
+				);
+				return;
 			}
+
+			Log.i(TAG, "Update presence to: " + present + " at " + location);
+
+			_ask.updatePresence(present, location, new AskWrapper.StatusCallback() {
+					@Override
+					public void onSuccess() {
+						// set current presence values
+						_currentLocation = location;
+						_currentPresence = present;
+						_currentAdditionalInfo = additionalInfo;
+
+						// notify anybody listening for presence updates
+						notifyPresenceUpdate(present, location, additionalInfo);
+
+						// cancel any outstanding notification (network error or BT error)
+						_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
+
+						// clear flags
+						_updatingPresence = false;
+						_updateWaiting = false;
+						_retry = false;
+
+						// just to be sure. it should already be set to false when
+						// connection is reestablished, but just in case we missed that
+						// broadcast, if updating the presence succeeded, we can set it
+						// to false for sure
+						_networkErrorActive = false;
+
+					}
+
+					@Override
+					public void onError(String errorMessage) {
+						Log.e(TAG, "failed to update presence");
+
+						// most likely the presence update fails because the session expired
+						// so we try again, but this time, we make sure that we log in again first
+						// by setting logged in state to false
+						_ask.setLoggedIn(false);
+
+						if (!_retry) {
+
+							// set retry flag ..
+							_retry = true;
+
+							// .. and try calling update presence again
+							updatePresence(present, location, additionalInfo);
+
+						} else {
+							// if the second time it fails again after logging in, we abort
+
+							// clear flags ..
+							_updatingPresence = false;
+							_retry = false;
+
+							// .. inform user and store presence update ..
+							onNetworkError(String.format("Failed to update presence, please check your internet!\n\n" +
+											"Error: %s", errorMessage),
+									present, location, additionalInfo);
+
+							// .. and abort
+						}
+					}
+				}
+			);
 		}
 	}
 
@@ -537,6 +550,37 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 	public String getCurrentAdditionalInfo() {
 		return _currentAdditionalInfo;
+	}
+
+	@Override
+	public void onEvent(EventListener.Event event) {
+		switch (event) {
+			case BLUETOOTH_INITIALIZED: {
+				// if BLE init succeeded clear the notification again
+				_notificationManager.cancel(Config.PRESENCE_NOTIFICATION_ID);
+				break;
+			}
+			case BLUETOOTH_TURNED_OFF: {
+				Intent contentIntent = new Intent(this, MainActivity.class);
+				PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+				Intent btEnableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+				PendingIntent piBtEnable = PendingIntent.getActivity(this, 0, btEnableIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+				String errorMessage = "Can't detect presence without BLE!";
+
+				NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+						.setSmallIcon(R.mipmap.ic_launcher)
+						.setContentTitle("Presence Detection Error")
+						.setContentText(errorMessage)
+						.setStyle(new NotificationCompat.BigTextStyle().bigText(errorMessage))
+						.addAction(android.R.drawable.ic_menu_manage, "Enable Bluetooth", piBtEnable)
+						.setContentIntent(piContent)
+						.setDefaults(Notification.DEFAULT_SOUND)
+						.setLights(Color.BLUE, 500, 1000);
+				_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, builder.build());
+			}
+		}
 	}
 
 //	public void setHighFrequencyDetection(boolean enable) {

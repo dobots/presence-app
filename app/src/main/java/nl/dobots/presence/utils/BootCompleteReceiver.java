@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-import nl.dobots.presence.gui.MainActivity;
 import nl.dobots.presence.srv.BleScanService;
 
 /**
@@ -30,9 +29,12 @@ import nl.dobots.presence.srv.BleScanService;
  *
  */
 public class BootCompleteReceiver extends BroadcastReceiver {
+
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		Intent startServiceIntent = new Intent(context, BleScanService.class);
+		startServiceIntent.putExtra(BleScanService.EXTRA_AUTO_START, true);
 		context.startService(startServiceIntent);
+//		PresenceDetection.getInstance(context.getApplicationContext());
 	}
 }

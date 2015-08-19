@@ -1,14 +1,11 @@
 package nl.dobots.presence.ask;
 
-import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.Looper;
 
 import junit.framework.Assert;
 
 import java.util.Map;
 
-import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.ask.rest.RestApi;
 import retrofit.RetrofitError;
 
@@ -166,6 +163,9 @@ public class AskWrapper {
 				callback.onError("failed to get current presence information");
 			}
 		} catch (RetrofitError e) {
+			// if an error occurs, it's most likely a login state error, so
+			// set logged in state to false before continuing
+			_loggedIn = false;
 			e.printStackTrace();
 			callback.onError(e.getMessage());
 		}

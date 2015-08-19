@@ -72,6 +72,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 	private String _currentAdditionalInfo;
 
 	private boolean expandedManualView = false;
+	private boolean _scanning;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +98,12 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			startManualExpirationUpdate();
 		}
 
+		// start BLE service. this is done separately so that the service continues running
+		// even if we unbind from it
+		Intent startServiceIntent = new Intent(this, BleScanService.class);
+//		startServiceIntent.putExtra("startScanning", true);
+		this.startService(startServiceIntent);
+
 		// connect to service
 		Intent intent = new Intent(this, BleScanService.class);
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
@@ -115,7 +122,9 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		if (_serviceBound) {
 			_service.registerScanDeviceListener(MainActivity.this);
 		}
-		_app.resumeDetection();
+		if (_scanning) {
+			_app.resumeDetection();
+		}
 
 		// check if login information is present, otherwise ..
 		if (!_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword())) {
@@ -134,6 +143,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		super.onPause();
 		if (_serviceBound) {
 			_service.unregisterScanDeviceListener(MainActivity.this);
+			_scanning = _service.isScanning();
 		}
 	}
 
@@ -226,7 +236,13 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		if (_serviceBound) {
 			if (_service.isScanning()) {
 				_service.stopIntervalScan();
+
+//				Intent stopServiceIntent = new Intent(this, BleScanService.class);
+//				this.stopService(stopServiceIntent);
 			} else {
+//				Intent startServiceIntent = new Intent(this, BleScanService.class);
+//				this.startService(startServiceIntent);
+
 				_service.startIntervalScan();
 			}
 			_scanningStateChanged = true;
