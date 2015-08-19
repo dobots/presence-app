@@ -213,8 +213,6 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 			protected TextView txtDeviceRssi;
 			protected TextView txtDeviceDistance;
 
-			protected boolean selected;
-
 		}
 
 		// Get a View that displays the data at the specified position in the data set.
@@ -245,7 +243,7 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 				viewHolder.txtDeviceRssi.setText(String.valueOf(beacon.getAverageRssi()));
 				viewHolder.txtDeviceDistance.setText(String.format("%.2f m", beacon.getDistance()));
 
-				if (_selectedDevices.indexOf(beacon.getAddress()) != -1) {
+				if (_selectedDevices.contains(beacon.getAddress())) {
 					convertView.setBackgroundColor(0x660000FF);
 				} else {
 					convertView.setBackgroundColor(0x00000000);

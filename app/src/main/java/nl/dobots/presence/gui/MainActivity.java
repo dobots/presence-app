@@ -300,7 +300,6 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 
 		if (_serviceBound) {
 			BleDeviceMap deviceMap = _service.getDeviceMap();
-			deviceMap.refresh();
 			final ArrayList<BleDevice> list = deviceMap.getDistanceSortedList();
 
 			final TextView _txtCurrentDistance2 = (TextView) findViewById(R.id.txtCurrentDistance2);

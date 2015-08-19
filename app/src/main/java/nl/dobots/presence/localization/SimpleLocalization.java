@@ -3,6 +3,7 @@ package nl.dobots.presence.localization;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import nl.dobots.bluenet.extended.structs.BleDevice;
 import nl.dobots.presence.cfg.Settings;
@@ -40,6 +41,7 @@ public class SimpleLocalization implements Localization {
 	private SimpleLocalization() {
 		_settings = Settings.getInstance();
 		_locationsList = _settings.getLocationsList();
+		_lastDetectionTime = new Date().getTime();
 	}
 
 	public static SimpleLocalization getInstance() {
