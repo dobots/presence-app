@@ -397,7 +397,11 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 				if (_currentPresence == null) {
 					_txtCurrentPresence.setText("Unknown");
 				} else if (_currentPresence) {
-					_txtCurrentPresence.setText(String.format("at %s (%s m)", _currentLocation, _currentAdditionalInfo));
+					if (!_currentAdditionalInfo.isEmpty()) {
+						_txtCurrentPresence.setText(String.format("at %s (%s m)", _currentLocation, _currentAdditionalInfo));
+					} else {
+						_txtCurrentPresence.setText(String.format("at %s", _currentLocation));
+					}
 					_txtCurrentPresence.setTextColor(0xFF339933);
 				} else {
 					_txtCurrentPresence.setText("Not present");

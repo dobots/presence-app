@@ -83,7 +83,7 @@ public class Config {
 	public static final String USERNAME_DEFAULT = "";
 	public static final String PASSWORD_DEFAULT = "";
 	public static final String SERVER_DEFAULT = "http://dev.ask-cs.com";
-	public static final float DETECTION_DISTANCE_DEFAULT = 2;
+	public static final float DETECTION_DISTANCE_DEFAULT = 3;
 	public static final float HIGH_FREQUENCY_DISTANCE_DEFAULT = 6;
 	public static final float LOW_FREQUENCY_DISTANCE_DEFAULT = 10;
 	// database version, defines form of entries. increase if data changes

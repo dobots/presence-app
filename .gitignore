@@ -3,3 +3,7 @@
 build/
 
 local.properties
+
+*.apk
+
+bluenet-lib

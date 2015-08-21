@@ -1,5 +1,7 @@
 package nl.dobots.presence.ask;
 
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 
 import junit.framework.Assert;
@@ -43,14 +45,14 @@ public class AskWrapper {
 
 	private RestApi _restApi;
 
-//	private Handler _networkHandler;
+	private Handler _networkHandler;
 
 	private AskWrapper() {
 		_restApi = RestApi.getInstance();
 
-//		HandlerThread networkThread = new HandlerThread("NetworkHandler");
-//		networkThread.start();
-//		_networkHandler = new Handler(networkThread.getLooper());
+		HandlerThread networkThread = new HandlerThread("NetworkHandler");
+		networkThread.start();
+		_networkHandler = new Handler(networkThread.getLooper());
 
 	}
 
@@ -67,19 +69,19 @@ public class AskWrapper {
 
 	public void login(final String username, final String password, final String server, final PresenceCallback callback) {
 
-		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
+//		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
 
 		// can't execute network operations in the main thread, so we have to delegate
 		// the call to the network handler
-//		if (Looper.myLooper() == Looper.getMainLooper()) {
-//			_networkHandler.post(new Runnable() {
-//				@Override
-//				public void run() {
-//					login(username, password, server, callback);
-//				}
-//			});
-//			return;
-//		}
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					login(username, password, server, callback);
+				}
+			});
+			return;
+		}
 
 		_loggedIn = false;
 		if(isLoginCredentialsValid(username, password)) {
@@ -114,19 +116,19 @@ public class AskWrapper {
 
 	public void updatePresence(final boolean present, final String location, final StatusCallback callback) {
 
-		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
+//		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
 
 		// can't execute network operations in the main thread, so we have to delegate
 		// the call to the network handler
-//		if (Looper.myLooper() == Looper.getMainLooper()) {
-//			_networkHandler.post(new Runnable() {
-//				@Override
-//				public void run() {
-//					updatePresence(present, location, callback);
-//				}
-//			});
-//			return;
-//		}
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					updatePresence(present, location, callback);
+				}
+			});
+			return;
+		}
 
 		try {
 			_restApi.getStandByApi().setLocationPresenceManually(present, location);
@@ -139,19 +141,19 @@ public class AskWrapper {
 
 	public void getCurrentPresence(final PresenceCallback callback) {
 
-		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
+//		Assert.assertNotSame("Can't run network operation on main thread!", Looper.myLooper(), Looper.getMainLooper());
 
 		// can't execute network operations in the main thread, so we have to delegate
 		// the call to the network handler
-//		if (Looper.myLooper() == Looper.getMainLooper()) {
-//			_networkHandler.post(new Runnable() {
-//				@Override
-//				public void run() {
-//					getCurrentPresence(callback);
-//				}
-//			});
-//			return;
-//		}
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			_networkHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					getCurrentPresence(callback);
+				}
+			});
+			return;
+		}
 
 		try {
 			Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
