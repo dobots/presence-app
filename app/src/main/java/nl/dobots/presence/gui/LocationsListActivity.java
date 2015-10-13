@@ -1,21 +1,19 @@
 package nl.dobots.presence.gui;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.view.ContextMenu;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.BaseAdapter;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -24,8 +22,7 @@ import br.com.thinkti.android.filechooser.FileChooser;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
-import nl.dobots.presence.locations.Location;
-import nl.dobots.presence.locations.LocationsList;
+import nl.dobots.bluenet.localization.locations.LocationsList;
 import nl.dobots.presence.utils.Utils;
 
 /**
@@ -58,8 +55,6 @@ public class LocationsListActivity extends ActionBarActivity {
 
 	private Settings _settings;
 
-	private Handler _handler = new Handler();
-
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -68,7 +63,7 @@ public class LocationsListActivity extends ActionBarActivity {
 		_settings = Settings.getInstance();
 		_locationsList = _settings.getLocationsList();
 
-		_locationsAdapter = new LocationsAdapter(_locationsList);
+		_locationsAdapter = new LocationsAdapter(this, _locationsList);
 
 		initUI();
 
@@ -167,76 +162,6 @@ public class LocationsListActivity extends ActionBarActivity {
 	}
 
 
-	// Regular inner class which act as the Adapter
-	public class LocationsAdapter extends BaseAdapter {
-		LocationsList _arrayList;
-
-		public LocationsAdapter(LocationsList array) {
-			_arrayList = array;
-		}
-
-		// How many items are in the data set represented by this Adapter.
-		@Override
-		public int getCount() {
-			return _arrayList.size();
-		}
-
-		// Get the data item associated with the specified position in the data set.
-		@Override
-		public Object getItem(int position) {
-			return _arrayList.get(position);
-		}
-
-		@Override
-		public long getItemId(int position) {
-			return position;
-		}
-
-		private class ViewHolder {
-
-			protected TextView txtLocationName;
-			protected ListView lvLocationBeacons;
-
-		}
-
-		// Get a View that displays the data at the specified position in the data set.
-		// You can either create a View manually or inflate it from an XML layout file.
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-
-			if(convertView == null){
-				// LayoutInflater class is used to instantiate layout XML file into its corresponding View objects.
-				LayoutInflater layoutInflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-				convertView = layoutInflater.inflate(R.layout.location_item, null);
-				final ViewHolder viewHolder = new ViewHolder();
-
-				viewHolder.txtLocationName = (TextView) convertView.findViewById(R.id.txtLocationName);
-				viewHolder.lvLocationBeacons = (ListView) convertView.findViewById(R.id.lvLocationBeacons);
-
-				convertView.setTag(viewHolder);
-			}
-
-			final ViewHolder viewHolder = (ViewHolder) convertView.getTag();
-
-			if (!_arrayList.isEmpty()) {
-				Location location  = _arrayList.get(position);
-				viewHolder.txtLocationName.setText(location.getName());
-				viewHolder.lvLocationBeacons.setAdapter(location.getLocationBeaconsAdapter());
-				viewHolder.lvLocationBeacons.setOnItemLongClickListener(location.getOnBeaconLongClickListener());
-				// doesn't work correctly if it is not given to the handler
-				_handler.postDelayed(new Runnable() {
-					@Override
-					public void run() {
-						Utils.setListViewHeightBasedOnChildren(viewHolder.lvLocationBeacons);
-					}
-				}, 0);
-			}
-
-			return convertView;
-		}
-
-	}
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		// Inflate the menu; this adds items to the action bar if it is present.
@@ -264,9 +189,38 @@ public class LocationsListActivity extends ActionBarActivity {
 				showFileChooser();
 				return true;
 			}
+			case R.id.locations_action_clearall: {
+
+				AlertDialog.Builder helpBuilder = new AlertDialog.Builder(this);
+				helpBuilder.setTitle("Exit");
+				helpBuilder.setMessage("Are you sure you want clear all locations?");
+				helpBuilder.setPositiveButton("Yes",
+						new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int which) {
+								clearAll();
+							}
+						}
+				);
+
+				helpBuilder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						// Do nothing
+					}
+				});
+
+				AlertDialog helpDialog = helpBuilder.create();
+				helpDialog.show();
+			}
 		}
 
 		return super.onOptionsItemSelected(item);
+	}
+
+	private void clearAll() {
+		_locationsList.clear();
+		_locationsAdapter.notifyDataSetChanged();
+		_settings.getDbAdapter(getApplicationContext()).clear();
 	}
 
 	/**

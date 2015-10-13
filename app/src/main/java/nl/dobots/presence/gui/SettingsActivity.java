@@ -8,6 +8,8 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -112,7 +114,7 @@ public class SettingsActivity extends ActionBarActivity {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
 				_settings.setLowFrequencyDistance((float) (progress / 5.0));
-				lowFrequencyDistanceText.setText(String.valueOf( _settings.getLowFrequencyDistance()) + "m");
+				lowFrequencyDistanceText.setText(String.valueOf(_settings.getLowFrequencyDistance()) + "m");
 			}
 
 			@Override
@@ -124,6 +126,14 @@ public class SettingsActivity extends ActionBarActivity {
 			}
 		});
 
+		CheckBox cbNotifications = (CheckBox) findViewById(R.id.cbNotifications);
+		cbNotifications.setChecked(_settings.isNotificationsEnabled());
+		cbNotifications.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				_settings.setNotificationsEnabled(isChecked);
+			}
+		});
 	}
 
 	public void clearSettings(View view) {

@@ -24,18 +24,17 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.Date;
 
-import nl.dobots.bluenet.extended.structs.BleDevice;
+import nl.dobots.bluenet.ble.extended.structs.BleDevice;
 import nl.dobots.presence.ask.AskWrapper;
 import nl.dobots.presence.cfg.Config;
 import nl.dobots.presence.cfg.Settings;
 import nl.dobots.presence.gui.MainActivity;
-import nl.dobots.presence.localization.Localization;
-import nl.dobots.presence.localization.SimpleLocalization;
-import nl.dobots.presence.locations.Location;
-import nl.dobots.presence.srv.BleScanService;
-import nl.dobots.presence.srv.EventListener;
-import nl.dobots.presence.srv.IntervalScanListener;
-import retrofit.RetrofitError;
+import nl.dobots.bluenet.localization.Localization;
+import nl.dobots.bluenet.localization.SimpleLocalization;
+import nl.dobots.bluenet.localization.locations.Location;
+import nl.dobots.bluenet.service.BleScanService;
+import nl.dobots.bluenet.service.callbacks.EventListener;
+import nl.dobots.bluenet.service.callbacks.IntervalScanListener;
 
 /**
  * Copyright (c) 2015 Dominik Egger <dominik@dobots.nl>. All rights reserved.
@@ -68,7 +67,6 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	private AskWrapper _ask;
 
 	private NotificationManager _notificationManager;
-	private NotificationCompat.Builder _builder;
 
 	private Boolean _currentPresence = null;
 	private String _currentLocation = "";
@@ -192,7 +190,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			Log.i(TAG, "disconnected from service");
 			_bound = false;
 		}
-	};;
+	};
 
 	@Override
 	public void onCreate() {
@@ -206,7 +204,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		_settings.readPersistentLocations(getApplicationContext());
 
 		// get localization algo
-		_localization = SimpleLocalization.getInstance();
+		_localization = new SimpleLocalization(_settings.getLocationsList(), _settings.getDetectionDistance());
 
 		// get ask wrapper (wraps login and presence functions)
 		_ask = AskWrapper.getInstance();
@@ -316,7 +314,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 		Log.d(TAG, "search locations");
 		if (!_updatingPresence && !devices.isEmpty()) {
-			SimpleLocalization.LocalizationResult localizationResult = SimpleLocalization.getInstance().findLocation(devices);
+			SimpleLocalization.LocalizationResult localizationResult = _localization.findLocation(devices);
 
 			if (localizationResult != null) {
 				final Location location = localizationResult.location;
@@ -372,25 +370,26 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		if (!_networkErrorActive) {
 			_networkErrorActive = true;
 
-			Intent contentIntent = new Intent(this, MainActivity.class);
-			contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-			PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+			if (_settings.isNotificationsEnabled()) {
+				Intent contentIntent = new Intent(this, MainActivity.class);
+				contentIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+				PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-			Intent wifiSettingsIntent = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
-			PendingIntent piWifiSettings = PendingIntent.getActivity(this, 0, wifiSettingsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+				Intent wifiSettingsIntent = new Intent(WifiManager.ACTION_PICK_WIFI_NETWORK);
+				PendingIntent piWifiSettings = PendingIntent.getActivity(this, 0, wifiSettingsIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-			_builder = new NotificationCompat.Builder(this)
-					.setSmallIcon(R.mipmap.ic_launcher)
-					.setContentTitle("Network Error")
-					.setContentText(error)
-					.setStyle(new NotificationCompat.BigTextStyle().bigText(error))
-					.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
-					.setContentIntent(piContent)
-					.setDefaults(Notification.DEFAULT_SOUND)
-					.setLights(Color.BLUE, 500, 1000);
-			_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, _builder.build());
-			Toast.makeText(this, error, Toast.LENGTH_LONG).show();
-
+				NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+						.setSmallIcon(R.mipmap.ic_launcher)
+						.setContentTitle("Network Error")
+						.setContentText(error)
+						.setStyle(new NotificationCompat.BigTextStyle().bigText(error))
+						.addAction(android.R.drawable.ic_menu_manage, "Wifi Settings", piWifiSettings)
+						.setContentIntent(piContent)
+						.setDefaults(Notification.DEFAULT_SOUND)
+						.setLights(Color.BLUE, 500, 1000);
+				_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, builder.build());
+				Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+			}
 		}
 
 		// set logged in as false (because of network error)
@@ -561,24 +560,26 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 				break;
 			}
 			case BLUETOOTH_TURNED_OFF: {
-				Intent contentIntent = new Intent(this, MainActivity.class);
-				PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+				if (_settings.isNotificationsEnabled()) {
+					Intent contentIntent = new Intent(this, MainActivity.class);
+					PendingIntent piContent = PendingIntent.getActivity(this, 0, contentIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-				Intent btEnableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-				PendingIntent piBtEnable = PendingIntent.getActivity(this, 0, btEnableIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+					Intent btEnableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+					PendingIntent piBtEnable = PendingIntent.getActivity(this, 0, btEnableIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-				String errorMessage = "Can't detect presence without BLE!";
+					String errorMessage = "Can't detect presence without BLE!";
 
-				NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
-						.setSmallIcon(R.mipmap.ic_launcher)
-						.setContentTitle("Presence Detection Error")
-						.setContentText(errorMessage)
-						.setStyle(new NotificationCompat.BigTextStyle().bigText(errorMessage))
-						.addAction(android.R.drawable.ic_menu_manage, "Enable Bluetooth", piBtEnable)
-						.setContentIntent(piContent)
-						.setDefaults(Notification.DEFAULT_SOUND)
-						.setLights(Color.BLUE, 500, 1000);
-				_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, builder.build());
+					NotificationCompat.Builder builder = new NotificationCompat.Builder(this)
+							.setSmallIcon(R.mipmap.ic_launcher)
+							.setContentTitle("Presence Detection Error")
+							.setContentText(errorMessage)
+							.setStyle(new NotificationCompat.BigTextStyle().bigText(errorMessage))
+							.addAction(android.R.drawable.ic_menu_manage, "Enable Bluetooth", piBtEnable)
+							.setContentIntent(piContent)
+							.setDefaults(Notification.DEFAULT_SOUND)
+							.setLights(Color.BLUE, 500, 1000);
+					_notificationManager.notify(Config.PRESENCE_NOTIFICATION_ID, builder.build());
+				}
 			}
 		}
 	}

@@ -6,7 +6,7 @@
 	<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
 					xmlns:tools="http://schemas.android.com/tools"
 					android:layout_width="match_parent"
-					android:layout_height="match_parent"
+					android:layout_height="wrap_content"
 					android:paddingLeft="@dimen/activity_horizontal_margin"
 					android:paddingRight="@dimen/activity_horizontal_margin"
 					android:paddingTop="@dimen/activity_vertical_margin"
@@ -17,7 +17,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:text="Status: "
+			android:text="@string/settings_status"
 			android:id="@+id/lblStatus"
 			android:layout_alignParentTop="true"
 			android:layout_alignParentStart="true"
@@ -37,7 +37,7 @@
 
 		<Button
 			android:id="@+id/btnLogin"
-			android:text="Log In"
+			android:text="@string/settings_login"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignBaseline="@id/txtLogInStatus"
@@ -48,7 +48,7 @@
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceSmall"
-			android:text="Change the detection distance:"
+			android:text="@string/settings_detection_distance"
 			android:id="@+id/lblDetectionDistance"
 			android:layout_below="@+id/lblStatus"
 			android:layout_alignParentStart="true"
@@ -144,21 +144,31 @@
 			android:visibility="gone"
 			/>
 
+		<CheckBox
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/settings_enable_notifications"
+			android:id="@+id/cbNotifications"
+			android:layout_alignParentStart="true"
+			android:layout_alignParentEnd="true"
+			android:layout_below="@+id/sbLowFrequencyDistance"
+			android:layout_marginTop="20dp"/>
+
 		<Button
 			android:id="@+id/btnLocations"
-			android:text="Configure Locations"
+			android:text="@string/settings_configure_locations"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_marginTop="20dp"
 			android:layout_alignParentStart="true"
 			android:layout_alignParentEnd="true"
-			android:layout_below="@+id/sbLowFrequencyDistance"
+			android:layout_below="@+id/cbNotifications"
 			android:onClick="configureLocations"
 			/>
 
 		<Button
 			android:id="@+id/btnClearSettings"
-			android:text="Clear Settings"
+			android:text="@string/settings_clear"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignParentStart="true"
@@ -167,7 +177,7 @@
 
 		<Button
 			android:id="@+id/btnSaveSettings"
-			android:text="Save Settings"
+			android:text="@string/settings_save"
 			android:layout_width="wrap_content"
 			android:layout_height="wrap_content"
 			android:layout_alignParentEnd="true"

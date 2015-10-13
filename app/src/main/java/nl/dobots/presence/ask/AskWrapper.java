@@ -90,7 +90,7 @@ public class AskWrapper {
 				Map<String, Object> presenceObj = _restApi.getStandByApi().getPresence(false);
 				if (presenceObj != null) {
 					_loggedIn = true;
-//					callback.onSuccess();
+//					callback.onDeviceScanned();
 					Boolean present = (Boolean) presenceObj.get("present");
 					String location = (String) presenceObj.get("location");
 					callback.onSuccess(present, location);

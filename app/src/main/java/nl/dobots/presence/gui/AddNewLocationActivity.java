@@ -21,14 +21,14 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-import nl.dobots.bluenet.extended.structs.BleDevice;
-import nl.dobots.bluenet.extended.structs.BleDeviceMap;
+import nl.dobots.bluenet.ble.extended.structs.BleDevice;
+import nl.dobots.bluenet.ble.extended.structs.BleDeviceMap;
 import nl.dobots.presence.PresenceDetectionApp;
-import nl.dobots.presence.locations.Location;
+import nl.dobots.bluenet.localization.locations.Location;
 import nl.dobots.presence.R;
-import nl.dobots.presence.srv.ScanDeviceListener;
+import nl.dobots.bluenet.service.callbacks.ScanDeviceListener;
 import nl.dobots.presence.cfg.Settings;
-import nl.dobots.presence.srv.BleScanService;
+import nl.dobots.bluenet.service.BleScanService;
 
 
 public class AddNewLocationActivity extends ActionBarActivity implements ScanDeviceListener {

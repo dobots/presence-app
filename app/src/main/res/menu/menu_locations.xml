@@ -15,4 +15,9 @@
 		  android:orderInCategory="101"
 		  app:showAsAction="never"/>
 
+	<item android:id="@+id/locations_action_clearall"
+		  android:title="Clear all"
+		  android:orderInCategory="101"
+		  app:showAsAction="never"/>
+
 </menu>

@@ -7,7 +7,6 @@ import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
-import android.text.method.CharacterPickerDialog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,15 +21,15 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-import nl.dobots.bluenet.extended.structs.BleDevice;
-import nl.dobots.bluenet.extended.structs.BleDeviceList;
-import nl.dobots.bluenet.extended.structs.BleDeviceMap;
+import nl.dobots.bluenet.ble.extended.structs.BleDevice;
+import nl.dobots.bluenet.ble.extended.structs.BleDeviceList;
+import nl.dobots.bluenet.ble.extended.structs.BleDeviceMap;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
-import nl.dobots.presence.locations.Location;
-import nl.dobots.presence.srv.BleScanService;
-import nl.dobots.presence.srv.ScanDeviceListener;
+import nl.dobots.bluenet.localization.locations.Location;
+import nl.dobots.bluenet.service.BleScanService;
+import nl.dobots.bluenet.service.callbacks.ScanDeviceListener;
 
 
 public class EditLocationActivity extends ActionBarActivity implements ScanDeviceListener {

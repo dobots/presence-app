@@ -53,13 +53,13 @@
 		</activity>
 
 		<service
-			android:name=".srv.BleScanService"
+			android:name="nl.dobots.bluenet.service.BleScanService"
 			android:enabled="true"
 			android:exported="true"
 			android:label="@string/app_name" >
 		</service>
 
-		<receiver android:name=".utils.BootCompleteReceiver" >
+		<receiver android:name="nl.dobots.bluenet.service.BootCompleteReceiver" >
 			<intent-filter>
 				<action android:name="android.intent.action.BOOT_COMPLETED" />
 			</intent-filter>

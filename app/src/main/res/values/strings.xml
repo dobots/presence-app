@@ -16,5 +16,12 @@
 	<string name="title_activity_edit_location">Edit Location</string>
     <string name="title_activity_locations">Configure Locations</string>
     <string name="title_activity_file_chooser">File Chooser</string>
+    <string name="settings_enable_notifications">Enable Notifications</string>
+    <string name="settings_configure_locations">Configure Locations</string>
+    <string name="settings_clear">Clear Settings</string>
+    <string name="settings_detection_distance">Change the detection distance:</string>
+    <string name="settings_login">Log In</string>
+    <string name="settings_status">Status:</string>
+    <string name="settings_save">Save Settings</string>
 
 </resources>

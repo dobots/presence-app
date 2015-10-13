@@ -3,9 +3,9 @@ package nl.dobots.presence.cfg;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import nl.dobots.presence.locations.Location;
-import nl.dobots.presence.locations.LocationsDbAdapter;
-import nl.dobots.presence.locations.LocationsList;
+import nl.dobots.bluenet.localization.locations.Location;
+import nl.dobots.bluenet.localization.locations.LocationsDbAdapter;
+import nl.dobots.bluenet.localization.locations.LocationsList;
 
 /**
  * Copyright (c) 2015 Dominik Egger <dominik@dobots.nl>. All rights reserved.
@@ -28,6 +28,14 @@ public class Settings {
 
 	private static final String SETTING_FILE = "general_settings";
 
+	private static final String DETECTION_DISTANCE_KEY = "detectionDistanceKey";
+	private static final String LOW_FREQUENCY_DISTANCE_KEY = "lowFrequencyDistanceKey";
+	private static final String HIGH_FREQUENCY_DISTANCE_KEY = "highFrequencyDistanceKey";
+	private static final String NOTIFICATIONS_ENABLED_KEY = "notificationsEnabledKey";
+	private static final String USERNAME_KEY = "usernameKey";
+	private static final String PASSWORD_KEY = "passwordKey";
+	private static final String SERVER_KEY = "serverKey";
+
 	private static Settings INSTANCE = null;
 
 	private float _detectionDistance;
@@ -39,6 +47,7 @@ public class Settings {
 
 	private LocationsList _locationsList = new LocationsList();
 	private LocationsDbAdapter _dbAdapter = null;
+	private boolean _notificationsEnabled;
 
 	private Settings() {
 	}
@@ -107,9 +116,10 @@ public class Settings {
 		//store the settings in the Shared Preference file
 		SharedPreferences sharedPreferences = context.getSharedPreferences(SETTING_FILE, 0);
 		SharedPreferences.Editor editor = sharedPreferences.edit();
-		editor.putFloat("detectionDistanceKey", _detectionDistance);
-		editor.putFloat("lowFrequencyDistanceKey", _lowFrequencyDistance);
-		editor.putFloat("highFrequencyDistanceKey", _highFrequencyDistance);
+		editor.putFloat(DETECTION_DISTANCE_KEY, _detectionDistance);
+		editor.putFloat(LOW_FREQUENCY_DISTANCE_KEY, _lowFrequencyDistance);
+		editor.putFloat(HIGH_FREQUENCY_DISTANCE_KEY, _highFrequencyDistance);
+		editor.putBoolean(NOTIFICATIONS_ENABLED_KEY, _notificationsEnabled);
 		editor.commit();
 	}
 
@@ -117,9 +127,9 @@ public class Settings {
 		//store the settings in the Shared Preference file
 		SharedPreferences settings = context.getSharedPreferences(SETTING_FILE, 0);
 		SharedPreferences.Editor editor = settings.edit();
-		editor.putString("usernameKey", _username);
-		editor.putString("passwordKey", _password);
-		editor.putString("serverKey", _server);
+		editor.putString(USERNAME_KEY, _username);
+		editor.putString(PASSWORD_KEY, _password);
+		editor.putString(SERVER_KEY, _server);
 		// Commit the edits!
 		editor.commit();
 	}
@@ -130,6 +140,7 @@ public class Settings {
 		_detectionDistance = Config.DETECTION_DISTANCE_DEFAULT;
 		_highFrequencyDistance = Config.HIGH_FREQUENCY_DISTANCE_DEFAULT;
 		_lowFrequencyDistance = Config.LOW_FREQUENCY_DISTANCE_DEFAULT;
+		_notificationsEnabled = true;
 
 		clearPersistentLocations(context);
 		_locationsList.clear();
@@ -137,17 +148,18 @@ public class Settings {
 
 	public void readPersistentStorage(Context context) {
 		SharedPreferences sharedPreferences = context.getSharedPreferences(SETTING_FILE, 0);
-		_detectionDistance = sharedPreferences.getFloat("detectionDistanceKey", Config.DETECTION_DISTANCE_DEFAULT);
-		_lowFrequencyDistance = sharedPreferences.getFloat("lowFrequencyDistanceKey", Config.LOW_FREQUENCY_DISTANCE_DEFAULT);
-		_highFrequencyDistance = sharedPreferences.getFloat("highFrequencyDistanceKey", Config.HIGH_FREQUENCY_DISTANCE_DEFAULT);
-		_username = sharedPreferences.getString("usernameKey", Config.USERNAME_DEFAULT);
-		_password = sharedPreferences.getString("passwordKey", Config.PASSWORD_DEFAULT);
-		_server = sharedPreferences.getString("serverKey", Config.SERVER_DEFAULT);
+		_detectionDistance = sharedPreferences.getFloat(DETECTION_DISTANCE_KEY, Config.DETECTION_DISTANCE_DEFAULT);
+		_lowFrequencyDistance = sharedPreferences.getFloat(LOW_FREQUENCY_DISTANCE_KEY, Config.LOW_FREQUENCY_DISTANCE_DEFAULT);
+		_highFrequencyDistance = sharedPreferences.getFloat(HIGH_FREQUENCY_DISTANCE_KEY, Config.HIGH_FREQUENCY_DISTANCE_DEFAULT);
+		_username = sharedPreferences.getString(USERNAME_KEY, Config.USERNAME_DEFAULT);
+		_password = sharedPreferences.getString(PASSWORD_KEY, Config.PASSWORD_DEFAULT);
+		_server = sharedPreferences.getString(SERVER_KEY, Config.SERVER_DEFAULT);
+		_notificationsEnabled = sharedPreferences.getBoolean(NOTIFICATIONS_ENABLED_KEY, true);
 	}
 
 	public LocationsDbAdapter getDbAdapter(Context context) {
 		if (_dbAdapter == null) {
-			_dbAdapter = new LocationsDbAdapter(context).open();
+			_dbAdapter = new LocationsDbAdapter(context).open(Config.DATABASE_NAME, Config.DATABASE_VERSION);
 		}
 		return _dbAdapter;
 	}
@@ -170,5 +182,13 @@ public class Settings {
 
 	public void addNewLocation(Location location) {
 		_locationsList.add(location);
+	}
+
+	public void setNotificationsEnabled(boolean notificationsEnabled) {
+		_notificationsEnabled = notificationsEnabled;
+	}
+
+	public boolean isNotificationsEnabled() {
+		return _notificationsEnabled;
 	}
 }
