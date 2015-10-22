@@ -13,6 +13,7 @@ import android.widget.CompoundButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
@@ -52,7 +53,13 @@ public class SettingsActivity extends ActionBarActivity {
 			_txtLogInStatus.setText("Not Logged In");
 			_btnLogIn.setText("Log In");
 		}
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
+	}
 
+	@Override
+	protected void onPause() {
+		super.onPause();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 
 	private void initUI() {

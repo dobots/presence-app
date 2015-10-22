@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import nl.dobots.bluenet.ble.extended.structs.BleDevice;
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.ask.AskWrapper;
 import nl.dobots.presence.cfg.Config;
 import nl.dobots.presence.cfg.Settings;
@@ -86,6 +87,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 //	private boolean _highFrequencyDetection;
 
 	private Localization _localization;
+	private BleLogger _bleLogger;
 
 	private boolean _detectionPaused = false;
 	private boolean _scanning;
@@ -167,6 +169,8 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			_service = binder.getService();
 			_service.registerIntervalScanListener(PresenceDetectionApp.this);
 			_service.registerEventListener(PresenceDetectionApp.this);
+			_service.registerScanDeviceListener(_bleLogger);
+			_service.registerIntervalScanListener(_bleLogger);
 
 			_service.setScanInterval(Config.LOW_SCAN_INTERVAL);
 			_service.setScanPause(Config.LOW_SCAN_PAUSE);
@@ -206,6 +210,15 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 		// get localization algo
 		_localization = new SimpleLocalization(_settings.getLocationsList(), _settings.getDetectionDistance());
 
+		// get logger
+		_bleLogger = new BleLogger();
+
+		//context.getFilesDir().getPath().toString()
+		//context.getExternalFilesDir
+
+		_bleLogger.init(getApplicationContext(), "bleLog.txt");
+		_bleLogger.logLine(BleLogger.BleLogEvent.appStart);
+
 		// get ask wrapper (wraps login and presence functions)
 		_ask = AskWrapper.getInstance();
 
@@ -243,11 +256,15 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 	@Override
 	public void onTerminate() {
 		super.onTerminate();
+		Log.d(TAG, "onTerminate");
 		if (_bound) {
 			unbindService(_connection);
 		}
+		_bleLogger.deinit();
 		_settings.onDestroy();
 	}
+
+
 
 	private void requestCurrentPresence() {
 
@@ -549,6 +566,16 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 	public String getCurrentAdditionalInfo() {
 		return _currentAdditionalInfo;
+	}
+
+	public void logLine(BleLogger.BleLogEvent event, String text) {
+		if (_bleLogger == null) return;
+		_bleLogger.logLine(event, text);
+	}
+
+	public void logLine(BleLogger.BleLogEvent event) {
+		if (_bleLogger == null) return;
+		_bleLogger.logLine(event);
 	}
 
 	@Override

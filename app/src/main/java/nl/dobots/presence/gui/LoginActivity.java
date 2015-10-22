@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
@@ -133,12 +134,14 @@ public class LoginActivity extends Activity {
 	public void onResume() {
 		super.onResume();
 //        isLoginActivityActive = true;
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
 	}
 
 	@Override
 	public void onPause() {
 		super.onPause();
 //        isLoginActivityActive = false;
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 //
 //    private void writePersistentSettings() {

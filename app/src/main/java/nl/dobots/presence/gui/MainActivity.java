@@ -29,6 +29,7 @@ import java.util.Date;
 
 import nl.dobots.bluenet.ble.extended.structs.BleDevice;
 import nl.dobots.bluenet.ble.extended.structs.BleDeviceMap;
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.cfg.Config;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.PresenceUpdateListener;
@@ -125,6 +126,7 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		if (_scanning) {
 			_app.resumeDetection();
 		}
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
 
 		// check if login information is present, otherwise ..
 		if (!_ask.isLoginCredentialsValid(_settings.getUsername(), _settings.getPassword())) {
@@ -145,6 +147,8 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 			_service.unregisterScanDeviceListener(MainActivity.this);
 			_scanning = _service.isScanning();
 		}
+
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 
 	@Override
@@ -220,13 +224,18 @@ public class MainActivity extends ActionBarActivity implements ScanDeviceListene
 		int id = item.getItemId();
 
 		switch(id) {
-		case R.id.action_settings: {
-			SettingsActivity.show(this);
-			return true;
-		}
-		case R.id.action_login: {
-			LoginActivity.show(this);
-		}
+			case R.id.action_settings: {
+				SettingsActivity.show(this);
+				return true;
+			}
+			case R.id.action_login: {
+				LoginActivity.show(this);
+				return true;
+			}
+			case R.id.action_annotation: {
+				AnnotationActivity.show(this);
+				return true;
+			}
 		}
 
 		return super.onOptionsItemSelected(item);

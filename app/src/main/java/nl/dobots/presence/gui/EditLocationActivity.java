@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import nl.dobots.bluenet.ble.extended.structs.BleDevice;
 import nl.dobots.bluenet.ble.extended.structs.BleDeviceList;
 import nl.dobots.bluenet.ble.extended.structs.BleDeviceMap;
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
@@ -88,6 +89,18 @@ public class EditLocationActivity extends ActionBarActivity implements ScanDevic
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
 
 		PresenceDetectionApp.getInstance().pauseDetection();
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 
 	@Override

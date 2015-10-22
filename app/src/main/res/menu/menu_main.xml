@@ -13,4 +13,8 @@
 		  android:orderInCategory="101"
 		  app:showAsAction="never"/>
 
+	<item android:id="@+id/action_annotation"
+		  android:title="@string/action_annotation"
+		  android:orderInCategory="102"
+		  app:showAsAction="never"/>
 </menu>

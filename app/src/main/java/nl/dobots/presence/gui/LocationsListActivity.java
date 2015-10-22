@@ -19,6 +19,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 import br.com.thinkti.android.filechooser.FileChooser;
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.presence.R;
 import nl.dobots.presence.cfg.Settings;
@@ -149,6 +150,13 @@ public class LocationsListActivity extends ActionBarActivity {
 		super.onResume();
 		_locationsAdapter.notifyDataSetChanged();
 		Utils.setListViewHeightBasedOnChildren(_lvLocationsList);
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 
 	public static void show(Context context) {

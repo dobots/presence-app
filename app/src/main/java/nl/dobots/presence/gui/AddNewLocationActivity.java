@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import nl.dobots.bluenet.ble.extended.structs.BleDevice;
 import nl.dobots.bluenet.ble.extended.structs.BleDeviceMap;
+import nl.dobots.bluenet.utils.logger.BleLogger;
 import nl.dobots.presence.PresenceDetectionApp;
 import nl.dobots.bluenet.localization.locations.Location;
 import nl.dobots.presence.R;
@@ -67,6 +68,18 @@ public class AddNewLocationActivity extends ActionBarActivity implements ScanDev
 		bindService(intent, _connection, Context.BIND_AUTO_CREATE);
 
 		PresenceDetectionApp.getInstance().pauseDetection();
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appForeGround);
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		PresenceDetectionApp.getInstance().logLine(BleLogger.BleLogEvent.appBackGround);
 	}
 
 	@Override

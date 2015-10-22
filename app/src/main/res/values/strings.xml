@@ -24,4 +24,8 @@
     <string name="settings_status">Status:</string>
     <string name="settings_save">Save Settings</string>
 
+    <string name="title_activity_annotation">AnnotationActivity</string>
+    <string name="action_annotation">Annotate</string>
+
+
 </resources>
