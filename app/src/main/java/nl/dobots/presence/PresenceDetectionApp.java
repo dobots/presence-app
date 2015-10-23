@@ -171,6 +171,7 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 			_service.registerEventListener(PresenceDetectionApp.this);
 			_service.registerScanDeviceListener(_bleLogger);
 			_service.registerIntervalScanListener(_bleLogger);
+			_service.registerEventListener(_bleLogger);
 
 			_service.setScanInterval(Config.LOW_SCAN_INTERVAL);
 			_service.setScanPause(Config.LOW_SCAN_PAUSE);
