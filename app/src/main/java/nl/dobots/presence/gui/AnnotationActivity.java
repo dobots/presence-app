@@ -29,13 +29,27 @@ public class AnnotationActivity extends AppCompatActivity {
 	ImageView _imageView;
 	Bitmap _bitmap;
 
-	int[] _floorIds = { R.drawable.basement,
-		R.drawable.ground,
-		R.drawable.floor_1,
-		R.drawable.floor_2,
-		R.drawable.floor_3};
-	String[] _floorsText = {"basement", "ground floor", "1st floor", "2nd floor", "top floor"};
-	String[] _floorsLogText = {"basement", "ground", "floor_1", "floor_2", "floor_3"};
+	int[] _floorIds = {
+//			R.drawable.basement,
+			R.drawable.ground,
+			R.drawable.floor_1,
+			R.drawable.floor_2,
+			R.drawable.floor_3
+	};
+	String[] _floorsText = {
+//			"basement",
+			"ground floor",
+			"1st floor",
+			"2nd floor",
+			"top floor"
+	};
+	String[] _floorsLogText = {
+//			"basement",
+			"ground",
+			"floor_1",
+			"floor_2",
+			"floor_3"
+	};
 
 
 
