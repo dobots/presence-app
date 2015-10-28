@@ -33,8 +33,8 @@ public class Config {
 	public static final long PRESENCE_TIMEOUT = 3 * (60 * 1000); // 3 minutes (in ms)
 
 	// scan for 1 second every 30 seconds
-	public static final int LOW_SCAN_INTERVAL = 1000; // 1 second scanning
-	public static final int LOW_SCAN_PAUSE = 29000; // 29 seconds pause
+	public static final int LOW_SCAN_INTERVAL = 5000; // 1 second scanning
+	public static final int LOW_SCAN_PAUSE = 25000; // 29 seconds pause
 
 //	public static final int LOW_SCAN_PAUSE = 2500; // 2.5 seconds
 //	public static final int LOW_SCAN_PERIOD = 500; // 0.5 seconds
