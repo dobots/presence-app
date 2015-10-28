@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="820.0mm" height="1240.0mm" viewBox="0 0 820.0 1240.0" xmlns="http://www.w3.org/2000/svg" version="1.1">
+<svg width="850.0mm" height="1270.0mm" viewBox="-15.0 -15.0 835.0 1255.0" xmlns="http://www.w3.org/2000/svg" version="1.1">
 <g transform=" scale(1,-1)">
-<path id="Sketch003" d="M 0.0 0.0 L 820.0 0.0 L 820.0 -1240.0 L 0.0 -1240.0 L 0.0 0.0 " fill="none" stroke="black" stroke-width="1"/>
-<path id="Sketch003" d="M 400.0 0.0 L 420.0 0.0 L 420.0 -206.0 L 400.0 -206.0 L 400.0 0.0 " fill="black"/>
+<path id="Sketch003" d="M 0.0 0.0 L 0.0 15.0 L 0.0 -1255.0 L 820.0 -1255.0 L 820.0 -1240.0 L 0.0 -1240.0 L 0.0 -1255.0 L -15.0 -1255.0 L -15.0 15.0 L 0.0 15.0 L 820.0 15.0 L 820.0 -1255.0 L 835.0 -1255.0 L 835.0 15.0 L 820.0 15.0 L 820.0 0.0 L 0.0 0.0 " fill="black"/>
+<path id="Sketch003" d="M 400.0 4.16333634234e-17 L 420.0 8.32667268469e-17 L 420.0 -206.0 L 400.0 -206.0 L 400.0 4.16333634234e-17 " fill="black"/>
 <path id="Sketch003" d="M 400.0 -288.0 L 420.0 -288.0 L 420.0 -497.0 L 400.0 -497.0 L 400.0 -288.0 " fill="black"/>
 <path id="Sketch003" d="M 420.0 -300.0 L 475.0 -300.0 L 475.0 -414.0 L 420.0 -414.0 L 420.0 -300.0 " fill="black"/>
 <path id="Sketch003" d="M 400.0 -582.0 L 420.0 -582.0 L 420.0 -837.0 L 400.0 -837.0 L 400.0 -582.0 " fill="black"/>
