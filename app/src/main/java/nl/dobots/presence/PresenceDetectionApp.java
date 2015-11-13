@@ -101,17 +101,20 @@ public class PresenceDetectionApp extends Application implements IntervalScanLis
 
 	private Handler _watchdogHandler;
 	private Runnable _watchdogRunner = new Runnable() {
+
 		@Override
 		public void run() {
 			if (System.currentTimeMillis() - _localization.getLastDetectionTime() > Config.PRESENCE_TIMEOUT) {
-				Log.i(TAG, String.format("Watchdog timeout. No beacon seen within %d seconds. Changing state to not present.", Config.PRESENCE_TIMEOUT));
+				if (_currentPresence) {
+					Log.i(TAG, String.format("Watchdog timeout. No beacon seen within %d seconds. Changing state to not present.", Config.PRESENCE_TIMEOUT / 1000));
 
-				_networkHandler.post(new Runnable() {
-					@Override
-					public void run() {
-						updatePresence(false, "", "");
-					}
-				});
+					_networkHandler.post(new Runnable() {
+						@Override
+						public void run() {
+							updatePresence(false, "", "");
+						}
+					});
+				}
 
 				// todo: should we go into low frequency scanning, e.g. 2 sec per 5 min or so until at least one beacon is seen again?
 			} else {
